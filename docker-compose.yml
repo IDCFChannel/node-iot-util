@@ -1,0 +1,7 @@
+iotutil:
+  build: .
+  volumes:
+    - .:/app
+  environment: 
+    - MESHBLU_URL=https://10.3.0.165/
+  
