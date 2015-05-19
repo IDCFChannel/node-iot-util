@@ -1,5 +1,5 @@
-var request = require('request'),
-    path = require('path');
+var request = require('request')
+  , path = require('path');
 
 module.exports = {
     commandStatus: function(symbol, command) {
