@@ -1,11 +1,12 @@
 {
-  "name": "iot-util",
+  "name": "iotutil",
   "description": "IoT Toolkit",
   "version": "0.0.1",
   "private": true,
   "dependencies": {
     "commander": "^2.8.1",
-    "request": "^2.55.0"
+    "request": "^2.55.0",
+    "redis": "^0.12.1"
   },
-  "scripts": {"start": "node app.js"}
+  "scripts": {"start":"node app.js"}
 }

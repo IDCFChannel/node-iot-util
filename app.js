@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 var program = require('commander')
-  , status = require('./commands/status.js');
+  , status  = require('./commands/status.js')
+  , devices = require('./commands/devices.js');
 
 program
     .version('0.0.1')
@@ -11,6 +12,13 @@ program
     .command('status')
     .description('show status')
     .action(status.commandStatus);
+
+program
+    .command('devices')
+    .description('post device')
+    .option('--name <name>', 'device name')
+    .option('--token [token]', 'token')
+    .action(devices.commandDevices);
 
 program.parse(process.argv);
 

@@ -1,18 +1,10 @@
 var request = require('request')
-  , path = require('path');
+  , util = require('../util');
 
 module.exports = {
-    commandStatus: function(symbol, command) {
+    commandStatus: function(options) {
 
-        var filename = path.basename(__filename),
-            cmd = filename.substr(0, filename.lastIndexOf('.'));
-
-        var options = {
-            url: process.env.MESHBLU_URL + cmd ,
-            agentOptions: {
-                rejectUnauthorized: false
-            }
-        }
+        var options = util.requestOptions(__filename);
 
         request.get(options,function(error, response, body) {
             if (!error && response.statusCode == 200){

@@ -4,4 +4,5 @@ iotutil:
     - .:/app
   environment: 
     - MESHBLU_URL=https://10.3.0.165/
-  
+    - REDIS_PORT=6379
+    - REDIS_HOST=172.17.0.1
