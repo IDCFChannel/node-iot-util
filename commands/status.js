@@ -1,10 +1,10 @@
 var request = require('request')
-  , util = require('../util');
+  , utils = require('../utils');
 
 module.exports = {
     commandStatus: function(options) {
 
-        var options = util.requestOptions(__filename);
+        var options = utils.requestOptions(__filename);
 
         request.get(options,function(error, response, body) {
             if (!error && response.statusCode == 200){

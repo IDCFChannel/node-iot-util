@@ -1,17 +1,28 @@
-var request = require('request')
-  , util = require('../util');
+var request = require('request'),
+    utils = require('../utils'),
+    Chance = require('chance'),
+    chance = new Chance();
+
+function randomToken() {
+    return chance.hash({length: 8})    
+}
 
 module.exports = {
     commandDevices: function(options) {
 
-        var name = options.name || 'action-x';
-        var token = options.token || 'token-x';
-        var options = util.requestOptions(__filename,
-                                          {name:name,
+        var keyword = options['keyword'];
+
+        if (!keyword) {
+            console.log('--keyword is required');
+            return
+        }
+        
+        var token = options.token || randomToken();
+
+        var options = utils.requestOptions(__filename,
+                                          {keyword:keyword,
                                            token:token});
 
-        console.log(name,token);
-        return;
         request.post(options,function(error, response, body) {
             if (!error && response.statusCode == 201){
                 var redis = require('redis'),
@@ -19,7 +30,7 @@ module.exports = {
                                               process.env.REDIS_HOST);
                 var body = JSON.parse(body),
                     uuid = body.uuid,
-                    key = body.name + ':' + body.token;
+                    key = body.keyword + ':' + body.token;
                 client.on("error", function (err) {
                     console.log("Error " + err);
                 });

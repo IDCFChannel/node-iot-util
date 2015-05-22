@@ -16,7 +16,7 @@ program
 program
     .command('devices')
     .description('post device')
-    .option('--name <name>', 'device name')
+    .option('--keyword <keyword>', 'device keyword')
     .option('--token [token]', 'token')
     .action(devices.commandDevices);
 

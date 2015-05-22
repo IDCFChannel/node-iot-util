@@ -6,7 +6,8 @@
   "dependencies": {
     "commander": "^2.8.1",
     "request": "^2.55.0",
-    "redis": "^0.12.1"
+    "redis": "^0.12.1",
+    "chance": "^0.7.5"
   },
   "scripts": {"start":"node app.js"}
 }
