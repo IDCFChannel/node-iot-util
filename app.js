@@ -16,8 +16,8 @@ program
 program
     .command('devices')
     .description('post device')
-    .option('--keyword <keyword>', 'device keyword')
-    .option('--token [token]', 'token')
+    .option('-p, --prefix [prefix]','action or trigger')
+    .option('-t, --times <n>','create times',parseInt)
     .action(devices.commandDevices);
 
 program.parse(process.argv);
