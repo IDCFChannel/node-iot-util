@@ -10,15 +10,34 @@ program
 
 program
     .command('status')
+    .option('-s, --status','Meshblu status')
     .description('show status')
     .action(status.commandStatus);
 
 program
-    .command('devices')
-    .description('post device')
+    .command('register')
+    .description('register devices')
+    .action(devices.commandRegister);
+
+program
+    .command('create')
+    .description('create devices')
     .option('-p, --prefix [prefix]','action or trigger')
     .option('-t, --times <n>','create times',parseInt)
-    .action(devices.commandDevices);
+    .action(devices.commandCreate);
+
+program
+    .command('delete')
+    .description('delete all devices')
+    .option('-p, --prefix [prefix]','action or trigger')
+    .action(devices.commandDelete);
+
+program
+    .command('list')
+    .description('list devices')
+    .option('-l, --list','list devices')
+    .option('-p, --prefix [prefix]','action or trigger or mythings')
+    .action(devices.commandList);
 
 program.parse(process.argv);
 
