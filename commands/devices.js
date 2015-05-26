@@ -4,8 +4,6 @@ var request = require('request'),
     chance = new Chance(),
     async = require('async'),
     redis = require('redis'),
-    client = redis.createClient(process.env.REDIS_PORT,
-                              process.env.REDIS_HOST),
     master = 'mythings';
 
 
@@ -13,67 +11,90 @@ function randomToken() {
     return chance.hash({length: 8})    
 }
 
-function validateDevices(prefix) {
-    return (prefix && ['action','trigger'].indexOf(prefix) > -1)
+function checkDevices(prefix) {
+    return (prefix && ['action','trigger'].indexOf(prefix) > -1);
 }
 
-function validatePrefix(prefix) {
-    if (!validateDevices(prefix)){
-        console.log('--prefix must be action or trigger');
-        process.exit(0);
+function validatePrefix(prefix,callback) {
+/*
+    if (!validateDevices(prefix))
+        return callback(new Error('--prefix must be action or trigger'));
+    callback(null,prefix);
+*/
+    if (!validateDevices(prefix)) {
+        return callback(new Error('--prefix must be action or trigger'));
     } else {
-        return true;
+        callback(null,prefix);
     }
 }
 
-function createDevices(prefix,times){
+function createDevices(owner,prefix,times,callback){
+    client = redis.createClient(process.env.REDIS_PORT,
+                                process.env.REDIS_HOST);
 
+    console.log(owner);
     async.timesSeries(times, function(n, callback) {
-
-        var keyword = prefix;
-        if (prefix != master){
-            keyword = keyword.concat('-').concat(n+1);
-        }
-
-        var token = randomToken();
-        var httpOptions = utils.requestOptions(__filename,
+        var keyword = prefix.concat('-').concat(n+1),
+            token = randomToken(),
+            httpOptions = utils.requestOptions(__filename,
                                                {keyword:keyword,
                                                 token:token});
-
-        request.post(httpOptions,function(error, response, body) {
-            if (!error && response.statusCode == 201){
-
+        request.post(httpOptions,function(err, response, body) {
+            if (!err && response.statusCode == 201){
                 var body = JSON.parse(body),
                 uuid = body.uuid,
                 key = body.keyword + ':' + body.token;
 
                 client.on("error", function (err) {
-                    console.log("Error " + err);
+                    console.log(err);
                 });
 
                 client.set(key,uuid);
                 console.log(key + '=' + uuid);
-                client.quit();
-            } else if (error) {
-                console.log('Error: ' + error);
+            } else if (err) {
+                console.log(err);
             }
+            callback(null);
         });
-        
+    },
+    function(err, results) {
+        client.quit();
+        if (err) return callback(err);
         callback(null);
-    });
-    return true;
+    });    
 }
 
-function getOwner(){
-    client.keys(master.concat(':*'),function(err,res){
-        if(err) throw err;
-        var owner = res[0].split(':');
-        if(!owner){
-            console.log("master user not found");
-            process.exit(0);
-            client.quit()
+function getOwner(callback){
+    client = redis.createClient(process.env.REDIS_PORT,
+                                process.env.REDIS_HOST);
+    async.waterfall([
+        function(callback){
+            client.keys(master.concat(':*'),function(err,res){
+                if (err) return callback(err);
+
+                if (res.length == 0) {
+                    return callback(new Error('owner not found'));
+                } else if (res.length > 1) {
+                    return callback(new Error('owner shoud be one: ',res));
+                } else {
+                    callback(null,res[0]);
+                }
+            });
+        },
+        function(ownerKey,callback) {
+            client.get(ownerKey,function(err,res){
+                if (err) return callback(err);
+                var token = ownerKey.split(':')[1];
+                var owner = {meshblu_auth_uuid: res,
+                             meshblu_auth_token: token};
+                callback(null, owner);
+            });
         }
-        return owner;
+    ],
+    function(err,results) {
+        client.quit();
+        if (err) return callback(err);
+        callback(null,results);
     });
 }
 
@@ -81,21 +102,35 @@ module.exports = {
     commandRegister: function(options) {
         var prefix = master,
             times = 1;
-        createDevices(prefix,times);
+        createDevices(null,prefix,times,function(err){});
     },
     commandCreate: function(options) {
+        async.waterfall([
+            function(callback) {                
+                var prefix = options.prefix;
+                if (!checkDevices(prefix)) {
+                    return callback(new Error('--prefix must be action or trigger'));
+                }
 
-        //var owner = getOwner();
-        var prefix = options.prefix;
-
-        if (!validatePrefix(prefix)) return;
-
-        var times = options.times;
-        if(isNaN(times) || times < 1){
-            console.log('--times must be > 0');
-            return;
-        }
-        createDevices(prefix,times);
+                var times = options.times;
+                if(isNaN(times) || times < 1) {
+                    return callback(new Error('--times must be > 0'));
+                } else {
+                    callback(null,prefix,times);
+                }
+            },
+            function(prefix,times,callback) {
+                getOwner(function(err,owner){
+                    if (err) return callback(err);
+                    createDevices(owner,prefix,times,callback);
+                });
+            }            
+        ],
+        function(err, results){
+            if(err){
+                console.log('error encountered: ' + err.message);
+            }
+        })
     },
 
     commandDelete: function(options) {
@@ -136,10 +171,19 @@ module.exports = {
             }
         });
         */
-    },
+    }/*,
     commandList: function(options) {
 
         var prefix = options.prefix;
+
+        async.series([
+            function(callback) {
+                if(error)
+            }
+        ],function(err)) {
+            if (err) { console.log("error"); }
+        }
+
         if (!validatePrefix(prefix)) return;
 
         var keyword = prefix;
@@ -158,5 +202,5 @@ module.exports = {
                 console.log('Error: ' + error);
             }
         });
-    }
+    }*/
 }
