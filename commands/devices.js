@@ -16,11 +16,6 @@ function checkDevices(prefix) {
 }
 
 function validatePrefix(prefix,callback) {
-/*
-    if (!validateDevices(prefix))
-        return callback(new Error('--prefix must be action or trigger'));
-    callback(null,prefix);
-*/
     if (!validateDevices(prefix)) {
         return callback(new Error('--prefix must be action or trigger'));
     } else {
@@ -34,26 +29,34 @@ function createDevices(owner,prefix,times,callback){
 
     console.log(owner);
     async.timesSeries(times, function(n, callback) {
-        var keyword = prefix.concat('-').concat(n+1),
-            token = randomToken(),
-            httpOptions = utils.requestOptions(__filename,
-                                               {keyword:keyword,
-                                                token:token});
-        request.post(httpOptions,function(err, response, body) {
-            if (!err && response.statusCode == 201){
-                var body = JSON.parse(body),
-                uuid = body.uuid,
-                key = body.keyword + ':' + body.token;
+        async.waterfall([
+            function(callback) {
+                var keyword = ((owner) ? prefix : prefix.concat('-').concat(n+1)),
+                    token = randomToken(),
+                    httpOptions = utils.requestOptions(__filename,
+                                                       {keyword:keyword,
+                                                        token:token});
+                request.post(httpOptions,function(err, response, body) {
+                    if (!err && response.statusCode == 201){
+                        var body = JSON.parse(body),
+                        uuid = body.uuid,
+                        key = body.keyword + ':' + body.token;
 
-                client.on("error", function (err) {
-                    console.log(err);
+                        client.on("error", function (err) {
+                            console.log(err);
+                        });
+
+                        client.set(key,uuid);
+                        console.log(key + '=' + uuid);
+                    } else if (err) {
+                        console.log(err);
+                    }
+                    callback(null);
                 });
-
-                client.set(key,uuid);
-                console.log(key + '=' + uuid);
-            } else if (err) {
-                console.log(err);
             }
+        ],
+        function(err,results) {
+            if (err) return callback(err);
             callback(null);
         });
     },
@@ -65,8 +68,9 @@ function createDevices(owner,prefix,times,callback){
 }
 
 function getOwner(callback){
-    client = redis.createClient(process.env.REDIS_PORT,
-                                process.env.REDIS_HOST);
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_ADDR,
+                                process.env.REDIS_PORT_6379_TCP_PORT);
+
     async.waterfall([
         function(callback){
             client.keys(master.concat(':*'),function(err,res){
