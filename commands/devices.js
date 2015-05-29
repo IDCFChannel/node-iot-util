@@ -29,8 +29,8 @@ function validatePrefix(prefix,callback) {
 }
 
 function createDevices(owner,prefix,times,callback){
-    client = redis.createClient(process.env.REDIS_PORT,
-                                process.env.REDIS_HOST);
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_ADDR,
+                                process.env.REDIS_PORT_6379_TCP_PORT);
 
     console.log(owner);
     async.timesSeries(times, function(n, callback) {

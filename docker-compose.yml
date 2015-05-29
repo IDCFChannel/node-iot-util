@@ -1,8 +1,0 @@
-iotutil:
-  build: .
-  volumes:
-    - .:/app
-  environment: 
-    - MESHBLU_URL=https://localhost/
-    - REDIS_PORT=6379
-    - REDIS_HOST=localhost
