@@ -3,6 +3,6 @@ iotutil:
   volumes:
     - .:/app
   environment: 
-    - MESHBLU_URL=https://10.3.0.165/
+    - MESHBLU_URL=https://localhost/
     - REDIS_PORT=6379
-    - REDIS_HOST=172.17.0.1
+    - REDIS_HOST=localhost
