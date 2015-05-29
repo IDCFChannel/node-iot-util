@@ -24,10 +24,7 @@ function validatePrefix(prefix,callback) {
     }
 }
 
-function createDevices(owner,prefix,times,callback){
-
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
-                                process.env.REDIS_PORT_6379_TCP_ADDR);
+function createDevices(client,owner,prefix,times,callback){
 
     async.timesSeries(times, function(n, callback) {
         async.waterfall([
@@ -39,51 +36,66 @@ function createDevices(owner,prefix,times,callback){
                                                        {keyword:keyword,
                                                         token:token});
                 request.post(httpOptions,function(err, response, body) {
-                    if (!err && response.statusCode == 201){
+
+                    if(err || response.statusCode != 201){
+                        console.log(err);
+                        return callback(new Error('status: ',response.statusCode));
+                    } else {
                         var body = JSON.parse(body),
                         uuid = body.uuid,
                         key = body.keyword + ':' + body.token;
-                        console.log('@@@@@@ ',body.keyword);
-                        console.log('@@@@@@ ',body.keyword);
-                        client.on("error", function (err) {
-                            console.log(err);
-                        });
 
                         client.set(key,uuid);
                         console.log(key + '=' + uuid);
-                    } else if (err) {
-                        console.log(err);
+                        var oathHeader = meshbluHeader(body.uuid,body.token);
+                        callback(null,body.keyword, oathHeader);
                     }
-                    callback(null,body.keyword,body.uuid,body.token);
                 });
             },
-            function(keyword,uuid,token){
-                httpOptions = utils.requestOptions('claimdevice/'+uuid,
-                                                  meshbluHeader(uuid,token));
+            function(keyword,oathHeader,callback){
+                httpOptions = utils.requestOptions('claimdevice/'+oathHeader.meshblu_auth_uuid,
+                                                  oathHeader);
                 request.put(httpOptions,function(err, response, body) {
-                    if (!err && response.statusCode == 200){
-                        var body = JSON.parse(body);
-                        client.on("error", function (err) {
-                            console.log(err);
-                        });
-                        console.log(body);
-                    } else if (err) {
+                    if (err || response.statusCode != 200){
                         console.log(err);
+                        return callback(new Error('status: ',response.statusCode));
+                    } else {
+                        var body = JSON.parse(body);
+                        callback(null,oathHeader);
                     }
-                    callback(null);
                 });
+            },
+            function(oathHeader, callback) {
+                if(!owner) return callback(null,oathHeader);
                 
+                var form = {
+                    discoverWhitelist: owner.meshblu_auth_uuid,
+                    sendWhitelist: owner.meshblu_auth_uuid
+                };
+
+                httpOptions = utils.requestOptions('devices/'+oathHeader.meshblu_auth_uuid,
+                                                   oathHeader,
+                                                   form);
+                request.put(httpOptions,function(err, response, body) {
+                    if (err || response.statusCode != 200) {
+                        console.log(err);
+                        return callback(new Error('status: ',response.statusCode));
+                    } else {
+                        var body = JSON.parse(body);
+                        console.log(body);
+                        callback(null,oathHeader);
+                    }
+                });
             }
         ],
         function(err,results) {
             if (err) return callback(err);
-            callback(null);
+            callback(null,results);
         });
     },
     function(err, results) {
-        client.quit();
         if (err) return callback(err);
-        callback(null);
+        callback(null,results);
     });    
 }
 
@@ -92,19 +104,22 @@ function meshbluHeader(uuid,token) {
             meshblu_auth_token: token};
 }
 
-function getOwner(callback){
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
-                                process.env.REDIS_PORT_6379_TCP_ADDR);
 
+function ownerExists(client,callback) {
+    client.keys(master.concat(':*'),function(err,res){
+        if (err) return callback(err);
+        callback(null,res);
+    });
+}
+
+
+function getOwner(client,callback){
     async.waterfall([
         function(callback){
-            client.keys(master.concat(':*'),function(err,res){
+            ownerExists(client,function(err,res){
                 if (err) return callback(err);
-
                 if (res.length == 0) {
                     return callback(new Error('owner not found'));
-                } else if (res.length > 1) {
-                    return callback(new Error('owner shoud be one: ',res));
                 } else {
                     callback(null,res[0]);
                 }
@@ -120,7 +135,7 @@ function getOwner(callback){
         }
     ],
     function(err,results) {
-        client.quit();
+        //client.quit();
         if (err) return callback(err);
         callback(null,results);
     });
@@ -130,11 +145,54 @@ module.exports = {
     commandRegister: function(options) {
         var prefix = master,
             times = 1;
-        createDevices(null,prefix,times,function(err){});
+
+        client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR);
+        client.on("error", function (err) {
+            console.log(err);
+        });
+
+        async.waterfall([
+            function(callback) {
+                ownerExists(client,function(err,res){
+                    if (err) return callback(err);
+                    if (res.length > 0) {
+                        return callback(new Error('owner shoud be one: ',res));
+                    } else {
+                        callback(null);
+                    }
+                });
+            },
+            function(callback) {
+                createDevices(client,null,prefix,times,callback);
+            },
+            function(res,callback){
+                if(!res) return callbck(new Error('owner create failed'));
+                var owner = res[0];
+                createDevices(client,owner,'trigger',5,
+                              function(err,res){
+                                  if(err) return callback(err);
+                                  callback(null,owner);
+                              });
+            },
+            function(owner,callback){
+                createDevices(client,owner,'action',5,callback);
+            }
+        ],
+        function(err, results){
+            client.quit();
+            if(err) console.log(err);
+        });
     },
     commandCreate: function(options) {
+        client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                    process.env.REDIS_PORT_6379_TCP_ADDR);
+        client.on("error", function (err) {
+            console.log(err);
+        });
+
         async.waterfall([
-            function(callback) {                
+            function(callback) { 
                 var prefix = options.prefix;
                 if (!checkDevices(prefix)) {
                     return callback(new Error('--prefix must be action or trigger'));
@@ -144,21 +202,20 @@ module.exports = {
                 if(isNaN(times) || times < 1) {
                     return callback(new Error('--times must be > 0'));
                 } else {
-                    callback(null,prefix,times);
+                    callback(null,client,prefix,times);
                 }
             },
             function(prefix,times,callback) {
-                getOwner(function(err,owner){
+                getOwner(client,function(err,owner){
                     if (err) return callback(err);
-                    createDevices(owner,prefix,times,callback);
+                    createDevices(client,owner,prefix,times,callback);
                 });
             }            
         ],
         function(err, results){
-            if(err){
-                console.log('error encountered: ' + err.message);
-            }
-        })
+            client.quit();
+            if(err) console.log(err);
+        });
     },
 
     commandDelete: function(options) {
@@ -174,7 +231,7 @@ module.exports = {
                     if(err) throw err;
                 });
             });
-            client.quit();
+            //client.quit();
         });
 
         /*
@@ -189,9 +246,6 @@ module.exports = {
                 var body = JSON.parse(body),
                 
                 key = body.keyword + ':' + body.token;
-                client.on("error", function (err) {
-                    console.log("Error " + err);
-                });
                 
                 client.quit();
             } else if (error) {
