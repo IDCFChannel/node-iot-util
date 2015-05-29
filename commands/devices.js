@@ -4,7 +4,7 @@ var request = require('request'),
     chance = new Chance(),
     async = require('async'),
     redis = require('redis'),
-    master = 'mythings';
+    master = 'owner';
 
 //require('request-debug')(request);
 
@@ -46,7 +46,7 @@ function createDevices(client,owner,prefix,times,callback){
                         key = body.keyword + ':' + body.token;
 
                         client.set(key,uuid);
-                        console.log(key + '=' + uuid);
+                        //console.log(key + '=' + uuid);
                         var oathHeader = meshbluHeader(body.uuid,body.token);
                         callback(null,body.keyword, oathHeader);
                     }
@@ -82,7 +82,7 @@ function createDevices(client,owner,prefix,times,callback){
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
-                        console.log(body);
+                        //console.log(body);
                         callback(null,oathHeader);
                     }
                 });
@@ -142,6 +142,23 @@ function getOwner(client,callback){
 }
 
 module.exports = {
+    commandOwner: function(options) {
+        client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR);
+        client.on("error", function (err) {
+            console.log(err);
+        });
+
+        ownerExists(client,function(err,res){
+            if (err) return callback(err);
+            if (res.length > 0) {
+                console.log(res[0]);
+            } else {
+                console.log("owner not exists");
+            }
+            client.quit();
+        });
+    },
     commandRegister: function(options) {
         var prefix = master,
             times = 1;
@@ -176,12 +193,17 @@ module.exports = {
                               });
             },
             function(owner,callback){
-                createDevices(client,owner,'action',5,callback);
+                createDevices(client,owner,'action',5,
+                              function(err,res){
+                                  if(err) return callback(err);
+                                  callback(null,owner);
+                              });
             }
         ],
         function(err, results){
             client.quit();
             if(err) console.log(err);
+            console.log("devices registered successfully, owner is ", results)
         });
     },
     commandCreate: function(options) {
@@ -217,7 +239,7 @@ module.exports = {
             if(err) console.log(err);
         });
     },
-
+    /*
     commandDelete: function(options) {
 
         var prefix = options.prefix;
@@ -234,7 +256,6 @@ module.exports = {
             //client.quit();
         });
 
-        /*
         var httpOptions = utils.requestOptions(__filename,
                                                {keyword:keyword,
                                                 token:token});
@@ -252,9 +273,10 @@ module.exports = {
                 console.log('Error: ' + error);
             }
         });
-        */
-    }/*,
+    },
     commandList: function(options) {
+        client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                    process.env.REDIS_PORT_6379_TCP_ADDR);
 
         var prefix = options.prefix;
 
@@ -276,7 +298,6 @@ module.exports = {
             
         request.get(httpOptions,function(error, response, body) {
             if (!error && response.statusCode == 201){
-
                 var body = JSON.parse(body);
                 console.log(body);
 

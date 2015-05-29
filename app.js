@@ -15,6 +15,11 @@ program
     .action(status.commandStatus);
 
 program
+    .command('owner')
+    .description('show owner keyword and token')
+    .action(devices.commandOwner);
+
+program
     .command('register')
     .description('register devices')
     .action(devices.commandRegister);
