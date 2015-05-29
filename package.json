@@ -6,6 +6,7 @@
   "dependencies": {
     "commander": "^2.8.1",
     "request": "^2.55.0",
+    "request-debug": "^0.2.0 ",
     "redis": "^0.12.1",
     "chance": "^0.7.5",
     "async": "^1.0.0"

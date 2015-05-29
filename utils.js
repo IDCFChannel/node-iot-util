@@ -5,8 +5,7 @@ function commandName(filename){
     return basename.substr(0, basename.lastIndexOf('.'));
 }
 
-function requestOptions(filename, form){
-    var command = commandName(filename);
+function requestOptions(command,headers,form){
     var options = {
         url: process.env.MESHBLU_URL + command ,
         agentOptions: {
@@ -14,9 +13,13 @@ function requestOptions(filename, form){
         }
     };
 
-    if(form){
-        options.form = form
+    if(headers){
+        options.headers = headers;
     }
+    if(form){
+        options.form = form;
+    }
+
     return options;
 }
 

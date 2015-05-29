@@ -6,6 +6,7 @@ var request = require('request'),
     redis = require('redis'),
     master = 'mythings';
 
+//require('request-debug')(request);
 
 function randomToken() {
     return chance.hash({length: 8})    
@@ -24,16 +25,17 @@ function validatePrefix(prefix,callback) {
 }
 
 function createDevices(owner,prefix,times,callback){
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_ADDR,
-                                process.env.REDIS_PORT_6379_TCP_PORT);
 
-    console.log(owner);
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR);
+
     async.timesSeries(times, function(n, callback) {
         async.waterfall([
             function(callback) {
-                var keyword = ((owner) ? prefix : prefix.concat('-').concat(n+1)),
+                var keyword = ((!owner) ? prefix : prefix.concat('-').concat(n+1)),
                     token = randomToken(),
-                    httpOptions = utils.requestOptions(__filename,
+                    httpOptions = utils.requestOptions('devices',
+                                                       null,
                                                        {keyword:keyword,
                                                         token:token});
                 request.post(httpOptions,function(err, response, body) {
@@ -41,7 +43,8 @@ function createDevices(owner,prefix,times,callback){
                         var body = JSON.parse(body),
                         uuid = body.uuid,
                         key = body.keyword + ':' + body.token;
-
+                        console.log('@@@@@@ ',body.keyword);
+                        console.log('@@@@@@ ',body.keyword);
                         client.on("error", function (err) {
                             console.log(err);
                         });
@@ -51,8 +54,25 @@ function createDevices(owner,prefix,times,callback){
                     } else if (err) {
                         console.log(err);
                     }
+                    callback(null,body.keyword,body.uuid,body.token);
+                });
+            },
+            function(keyword,uuid,token){
+                httpOptions = utils.requestOptions('claimdevice/'+uuid,
+                                                  meshbluHeader(uuid,token));
+                request.put(httpOptions,function(err, response, body) {
+                    if (!err && response.statusCode == 200){
+                        var body = JSON.parse(body);
+                        client.on("error", function (err) {
+                            console.log(err);
+                        });
+                        console.log(body);
+                    } else if (err) {
+                        console.log(err);
+                    }
                     callback(null);
                 });
+                
             }
         ],
         function(err,results) {
@@ -67,9 +87,14 @@ function createDevices(owner,prefix,times,callback){
     });    
 }
 
+function meshbluHeader(uuid,token) {
+    return {meshblu_auth_uuid: uuid,
+            meshblu_auth_token: token};
+}
+
 function getOwner(callback){
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_ADDR,
-                                process.env.REDIS_PORT_6379_TCP_PORT);
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR);
 
     async.waterfall([
         function(callback){
@@ -89,8 +114,7 @@ function getOwner(callback){
             client.get(ownerKey,function(err,res){
                 if (err) return callback(err);
                 var token = ownerKey.split(':')[1];
-                var owner = {meshblu_auth_uuid: res,
-                             meshblu_auth_token: token};
+                var owner = meshbluHeader(res,token);
                 callback(null, owner);
             });
         }
