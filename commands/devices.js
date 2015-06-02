@@ -41,12 +41,17 @@ function createDevices(client,owner,prefix,times,callback){
                         console.log(err);
                         return callback(new Error('status: ',response.statusCode));
                     } else {
-                        var body = JSON.parse(body),
-                        uuid = body.uuid,
-                        key = body.keyword + ':' + body.token;
+                        var body = JSON.parse(body);
+                        var key = '';
+                        if(!owner) {
+                            key = body.keyword + ':' + body.token;
+                        } else {
+                            key = body.keyword;
+                        }
 
-                        client.set(key,uuid);
-                        //console.log(key + '=' + uuid);
+                        client.hset(key,'token',body.token);
+                        client.hset(key,'uuid',body.uuid);
+
                         var oathHeader = meshbluHeader(body.uuid,body.token);
                         callback(null,body.keyword, oathHeader);
                     }
@@ -106,7 +111,7 @@ function meshbluHeader(uuid,token) {
 
 
 function ownerExists(client,callback) {
-    client.keys(master.concat(':*'),function(err,res){
+    client.keys(master+':*',function(err,res){
         if (err) return callback(err);
         callback(null,res);
     });
@@ -126,12 +131,20 @@ function getOwner(client,callback){
             });
         },
         function(ownerKey,callback) {
+/*
             client.get(ownerKey,function(err,res){
                 if (err) return callback(err);
                 var token = ownerKey.split(':')[1];
                 var owner = meshbluHeader(res,token);
                 callback(null, owner);
             });
+*/
+            client.hgetall(ownerKey, function (err,res) {
+                if (err) return callback(err);
+                var owner = meshbluHeader(res.uuid,res.token);
+                callback(null, owner);
+            });
+
         }
     ],
     function(err,results) {
