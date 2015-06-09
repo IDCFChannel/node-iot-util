@@ -75,7 +75,7 @@ function createDevices(client,owner,prefix,times,callback){
                 
                 var form = {
                     discoverWhitelist: owner.meshblu_auth_uuid,
-                    sendWhitelist: owner.meshblu_auth_uuid
+                    receiveWhitelist: owner.meshblu_auth_uuid
                 };
 
                 httpOptions = utils.requestOptions('devices/'+oathHeader.meshblu_auth_uuid,
