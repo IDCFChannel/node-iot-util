@@ -48,7 +48,7 @@ function createDevices(client,owner,prefix,times,callback){
                         } else {
                             key = body.keyword;
                         }
-
+                        console.log(body);
                         client.hset(key,'token',body.token);
                         client.hset(key,'uuid',body.uuid);
 
@@ -66,18 +66,31 @@ function createDevices(client,owner,prefix,times,callback){
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
-                        callback(null,oathHeader);
+                        callback(null,keyword,oathHeader);
                     }
                 });
             },
-            function(oathHeader, callback) {
+            function(keyword,oathHeader,callback) {
+                if(!owner) return callback(null,keyword,oathHeader,null);
+                var form = {
+                    discoverWhitelist: [owner.meshblu_auth_uuid],
+                    receiveWhitelist: [owner.meshblu_auth_uuid]
+                };
+                if (keyword.indexOf('action') === 0) {
+                    getDevice(client,'trigger-'+keyword.split('-')[1],
+                              function(err,res) {
+                                  if (err) return callback(err);
+                                  form.discoverWhitelist.push(res.uuid);
+                                  form.receiveWhitelist.push(res.uuid);
+                                  callback(null,keyword,oathHeader,form);
+                              });
+                } else {
+                    callback(null,keyword,oathHeader,form);
+                }
+            },
+            function(keyword,oathHeader,form,callback) {
                 if(!owner) return callback(null,oathHeader);
                 
-                var form = {
-                    discoverWhitelist: owner.meshblu_auth_uuid,
-                    receiveWhitelist: owner.meshblu_auth_uuid
-                };
-
                 httpOptions = utils.requestOptions('devices/'+oathHeader.meshblu_auth_uuid,
                                                    oathHeader,
                                                    form);
@@ -87,7 +100,6 @@ function createDevices(client,owner,prefix,times,callback){
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
-                        //console.log(body);
                         callback(null,oathHeader);
                     }
                 });
@@ -117,6 +129,12 @@ function ownerExists(client,callback) {
     });
 }
 
+function getDevice(client,name,callback) {
+    client.hgetall(name, function (err,res) {
+        if (err) return callback(err);
+        callback(null, res);
+    });
+}
 
 function getOwner(client,callback){
     async.waterfall([
@@ -144,7 +162,6 @@ function getOwner(client,callback){
                 var owner = meshbluHeader(res.uuid,res.token);
                 callback(null, owner);
             });
-
         }
     ],
     function(err,results) {
