@@ -1,4 +1,10 @@
-var path = require('path');
+var path = require('path'),
+    Chance = require('chance'),
+    chance = new Chance();
+
+function randomToken() {
+    return chance.hash({length: 8})    
+}
 
 function commandName(filename){
     var basename = path.basename(filename);
@@ -24,5 +30,6 @@ function requestOptions(command,headers,form){
 }
 
 module.exports = {
-    requestOptions: requestOptions
+    requestOptions: requestOptions,
+    randomToken: randomToken
 };

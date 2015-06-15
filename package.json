@@ -1,15 +1,23 @@
 {
-  "name": "iotutil",
-  "description": "IoT Toolkit",
-  "version": "0.0.1",
-  "private": true,
-  "dependencies": {
-    "commander": "^2.8.1",
-    "request": "^2.55.0",
-    "request-debug": "^0.2.0 ",
-    "redis": "^0.12.1",
-    "chance": "^0.7.5",
-    "async": "^1.0.0"
-  },
-  "scripts": {"start":"node app.js"}
+    "name": "iotutil",
+    "description": "IoT Toolkit",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "commander": "^2.8.1",
+        "request": "^2.55.0",
+        "request-debug": "^0.2.0 ",
+        "redis": "^0.12.1",
+        "chance": "^0.7.5",
+        "async": "^1.0.0",
+        "lodash": "^3.9.3"
+    },
+    "devDependencies": {
+        "mocha": "^2.2.5",
+        "chai": "^3.0.0"
+    },
+    "scripts": {
+        "start":"node app.js",
+        "test": "./node_modules/.bin/mocha --reporter spec"
+    }
 }

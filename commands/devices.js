@@ -1,62 +1,59 @@
 var request = require('request'),
     utils = require('../utils'),
-    Chance = require('chance'),
-    chance = new Chance(),
     async = require('async'),
     redis = require('redis'),
+    _ = require('lodash');
     master = 'owner';
 
 //require('request-debug')(request);
 
-function randomToken() {
-    return chance.hash({length: 8})    
-}
-
 function checkDevices(prefix) {
-    return (prefix && ['action','trigger'].indexOf(prefix) > -1);
+    return _.includes(['action','trigger'],prefix);
 }
 
 function validatePrefix(prefix,callback) {
-    if (!validateDevices(prefix)) {
+    if (!checkDevices(prefix)) {
         return callback(new Error('--prefix must be action or trigger'));
     } else {
         callback(null,prefix);
     }
 }
 
+
+function postDevice(opts, callback) {
+    httpOptions = utils.requestOptions('devices', null, opts);
+    request.post(httpOptions,function(err, response, body) {        
+        if(err || response.statusCode != 201){
+            console.log(err);
+            return callback(new Error('status: ', response.statusCode));
+        } else {
+            var body = JSON.parse(body);
+            var key = '';
+            if(_.startsWith(opts.keyword,master)){
+                key = body.keyword + ':' + body.token;
+            } else {
+                key = body.keyword;
+            }
+            console.log(body);
+            client.hset(key,'token', body.token);
+            client.hset(key,'uuid', body.uuid);
+            var oathHeader = meshbluHeader(body.uuid,body.token);
+
+            callback(null, body.keyword, oathHeader);
+        }
+    });
+}
+
 function createDevices(client,owner,prefix,times,callback){
-
     async.timesSeries(times, function(n, callback) {
+
+        var opts = {
+            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
+            token: utils.randomToken()
+        };
+
         async.waterfall([
-            function(callback) {
-                var keyword = ((!owner) ? prefix : prefix.concat('-').concat(n+1)),
-                    token = randomToken(),
-                    httpOptions = utils.requestOptions('devices',
-                                                       null,
-                                                       {keyword:keyword,
-                                                        token:token});
-                request.post(httpOptions,function(err, response, body) {
-
-                    if(err || response.statusCode != 201){
-                        console.log(err);
-                        return callback(new Error('status: ',response.statusCode));
-                    } else {
-                        var body = JSON.parse(body);
-                        var key = '';
-                        if(!owner) {
-                            key = body.keyword + ':' + body.token;
-                        } else {
-                            key = body.keyword;
-                        }
-                        console.log(body);
-                        client.hset(key,'token',body.token);
-                        client.hset(key,'uuid',body.uuid);
-
-                        var oathHeader = meshbluHeader(body.uuid,body.token);
-                        callback(null,body.keyword, oathHeader);
-                    }
-                });
-            },
+            postDevice.bind(null,opts),
             function(keyword,oathHeader,callback){
                 httpOptions = utils.requestOptions('claimdevice/'+oathHeader.meshblu_auth_uuid,
                                                   oathHeader);
