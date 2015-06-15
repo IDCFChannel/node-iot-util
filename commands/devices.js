@@ -1,10 +1,10 @@
+'use strict';
 var request = require('request'),
     utils = require('../utils'),
     async = require('async'),
-    redis = require('redis'),
-    _ = require('lodash');
+    Device = require('../model/devices'),
+    _ = require('lodash'),
     master = 'owner';
-
 //require('request-debug')(request);
 
 function checkDevices(prefix) {
@@ -19,7 +19,7 @@ function validatePrefix(prefix,callback) {
     }
 }
 
-
+/*
 function postDevice(opts, callback) {
     httpOptions = utils.requestOptions('devices', null, opts);
     request.post(httpOptions,function(err, response, body) {        
@@ -43,7 +43,8 @@ function postDevice(opts, callback) {
         }
     });
 }
-
+*/
+/*
 function createDevices(client,owner,prefix,times,callback){
     async.timesSeries(times, function(n, callback) {
 
@@ -74,7 +75,8 @@ function createDevices(client,owner,prefix,times,callback){
                     receiveWhitelist: [owner.meshblu_auth_uuid]
                 };
                 if (keyword.indexOf('action') === 0) {
-                    getDevice(client,'trigger-'+keyword.split('-')[1],
+                    //getDevice(client,'trigger-'+keyword.split('-')[1],
+                    client.getDevice('trigger-'+keyword.split('-')[1],
                               function(err,res) {
                                   if (err) return callback(err);
                                   form.discoverWhitelist.push(res.uuid);
@@ -112,27 +114,31 @@ function createDevices(client,owner,prefix,times,callback){
         callback(null,results);
     });    
 }
-
+*/
+/*
 function meshbluHeader(uuid,token) {
     return {meshblu_auth_uuid: uuid,
             meshblu_auth_token: token};
 }
-
-
+*/
+/*
 function ownerExists(client,callback) {
     client.keys(master+':*',function(err,res){
         if (err) return callback(err);
         callback(null,res);
     });
 }
-
+*/
+/*
 function getDevice(client,name,callback) {
     client.hgetall(name, function (err,res) {
         if (err) return callback(err);
         callback(null, res);
     });
 }
+*/
 
+/*
 function getOwner(client,callback){
     async.waterfall([
         function(callback){
@@ -146,14 +152,13 @@ function getOwner(client,callback){
             });
         },
         function(ownerKey,callback) {
-/*
-            client.get(ownerKey,function(err,res){
-                if (err) return callback(err);
-                var token = ownerKey.split(':')[1];
-                var owner = meshbluHeader(res,token);
-                callback(null, owner);
-            });
-*/
+            //client.get(ownerKey,function(err,res){
+            //    if (err) return callback(err);
+            //    var token = ownerKey.split(':')[1];
+            //    var owner = meshbluHeader(res,token);
+            //    callback(null, owner);
+            //});
+
             client.hgetall(ownerKey, function (err,res) {
                 if (err) return callback(err);
                 var owner = meshbluHeader(res.uuid,res.token);
@@ -167,79 +172,93 @@ function getOwner(client,callback){
         callback(null,results);
     });
 }
+*/
 
 module.exports = {
     commandOwner: function(options) {
+
+        /*
         client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                 process.env.REDIS_PORT_6379_TCP_ADDR);
         client.on("error", function (err) {
             console.log(err);
         });
-
-        ownerExists(client,function(err,res){
+        */
+        
+        //ownerExists(client,function(err,res){
+        var client = new Redis();
+        client.ownerExists(function(err,res){
             if (err) return callback(err);
             if (res.length > 0) {
                 console.log(res[0]);
             } else {
                 console.log("owner not exists");
             }
-            client.quit();
+            //client.quit();
+            client.endConnection();
         });
     },
     commandRegister: function(options) {
         var prefix = master,
             times = 1;
-
+        /*
         client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                 process.env.REDIS_PORT_6379_TCP_ADDR);
         client.on("error", function (err) {
             console.log(err);
         });
-
+        */
+        var device = new Device();
         async.waterfall([
             function(callback) {
-                ownerExists(client,function(err,res){
+                //ownerExists(client,function(err,res){
+                device.ownerExists(function(err,res) {
                     if (err) return callback(err);
                     if (res.length > 0) {
-                        return callback(new Error('owner shoud be one: ',res));
+                        return callback(new Error('owner shoud be one ['+res+'] exists.'));
                     } else {
                         callback(null);
                     }
                 });
             },
             function(callback) {
-                createDevices(client,null,prefix,times,callback);
+                //createDevices(client,null,prefix,times,callback);
+                device.createDevices(null,prefix,times,callback);
             },
             function(res,callback){
                 if(!res) return callbck(new Error('owner create failed'));
                 var owner = res[0];
-                createDevices(client,owner,'trigger',5,
+                //createDevices(client,owner,'trigger',5,
+                device.createDevices(owner,'trigger',5,
                               function(err,res){
                                   if(err) return callback(err);
                                   callback(null,owner);
                               });
             },
             function(owner,callback){
-                createDevices(client,owner,'action',5,
-                              function(err,res){
-                                  if(err) return callback(err);
-                                  callback(null,owner);
-                              });
+                //createDevices(client,owner,'action',5,
+                device.createDevices(owner,'action',5,
+                                     function(err,res){
+                                         if(err) return callback(err);
+                                         callback(null,owner);
+                                     });
             }
-        ],
-        function(err, results){
-            client.quit();
-            if(err) console.log(err);
+        ], function(err, results){
+            //client.quit();
+            device.endConnection();
+            if(err) return console.log(err.message);
             console.log("devices registered successfully, owner is ", results)
         });
     },
     commandCreate: function(options) {
+        /*
         client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                     process.env.REDIS_PORT_6379_TCP_ADDR);
         client.on("error", function (err) {
             console.log(err);
         });
-
+        */
+        var device = new Device();
         async.waterfall([
             function(callback) { 
                 var prefix = options.prefix;
@@ -251,18 +270,22 @@ module.exports = {
                 if(isNaN(times) || times < 1) {
                     return callback(new Error('--times must be > 0'));
                 } else {
-                    callback(null,client,prefix,times);
+                    //callback(null,client,prefix,times);
+                    callback(null,prefix,times);
                 }
             },
             function(prefix,times,callback) {
-                getOwner(client,function(err,owner){
+                //getOwner(client,function(err,owner){
+                device.getOwner(function(err,owner){
                     if (err) return callback(err);
-                    createDevices(client,owner,prefix,times,callback);
+                    //createDevices(client,owner,prefix,times,callback);
+                    device.createDevices(owner,prefix,times,callback);
                 });
-            }            
+            }  
         ],
         function(err, results){
-            client.quit();
+            //client.quit();
+            device.encConnection();
             if(err) console.log(err);
         });
     },
