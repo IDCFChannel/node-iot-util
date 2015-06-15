@@ -18,35 +18,34 @@ var Device = function () {
                                      process.env.REDIS_PORT_6379_TCP_ADDR,{
                                          "connection_timeout": 1.0
                                      });
-    this.client.on('error',function(err){
+    this.client.on('error',function(err) {
         if (err) {
             console.error('error connecting redis for recommendations: ', err);
             return;
         }
     });
 
-    this.client.on('reconnecting',function(){
+    this.client.on('reconnecting', function() {
         console.log('reconnecting');
-    })
+    });
 };
 
 Device.prototype.endConnection = function () {
     this.client.quit();
 };
 
-Device.prototype.createDevices = function(owner,prefix,times,callback){
+Device.prototype.createDevices = function(owner,prefix,times,callback) {
     var self = this;
     async.timesSeries(times, function(n, callback) {
-        var opts = {
-            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
-            token: utils.randomToken()
-        };
         async.waterfall([
             function(callback) {
+                var opts = {
+                    keyword: (!owner ? prefix : prefix+'-'+(n+1)),
+                    token: utils.randomToken()
+                };
                 var httpOptions = utils.requestOptions('devices', null, opts);
                 request.post(httpOptions,function(err, response, body) {        
                     if(err || response.statusCode != 201){
-                        console.log(err);
                         return callback(new Error('status: ', response.statusCode));
                     } else {
                         var body = JSON.parse(body);
@@ -69,7 +68,6 @@ Device.prototype.createDevices = function(owner,prefix,times,callback){
                                                   authHeader);
                 request.put(httpOptions,function(err, response, body) {
                     if (err || response.statusCode != 200) {
-                        console.log(err);
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
@@ -84,7 +82,6 @@ Device.prototype.createDevices = function(owner,prefix,times,callback){
                     receiveWhitelist: [owner.meshblu_auth_uuid]
                 };
                 if (keyword.indexOf('action') === 0) {
-                    //getDevice(client,'trigger-'+keyword.split('-')[1],
                     self.getDevice('trigger-'+keyword.split('-')[1],
                                    function(err,res) {
                                        if (err) return callback(err);
@@ -104,11 +101,10 @@ Device.prototype.createDevices = function(owner,prefix,times,callback){
                                                    form);
                 request.put(httpOptions,function(err, response, body) {
                     if (err || response.statusCode != 200) {
-                        console.log(err);
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
-                        callback(null,authHeader);
+                        callback(null, authHeader);
                     }
                 });
             }
@@ -154,7 +150,7 @@ Device.prototype.getOwner = function(callback){
     ],
     function(err,results) {
         if (err) return callback(err);
-        callback(null,results);
+        callback(null, results);
     });
 };
 
@@ -163,10 +159,6 @@ Device.prototype.ownerExists = function(callback) {
         if (err) return callback(err);
         callback(null,res);
     });
-};
-
-Device.prototype.endConnection = function () {
-    this.client.quit();
 };
 
 module.exports = Device;
