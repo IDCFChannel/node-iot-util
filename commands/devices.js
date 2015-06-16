@@ -32,7 +32,6 @@ function commandOwner(options) {
     });
 }
 
-
 function doOwnerCheck(device, callback) {
     device.ownerExists(function(err,res) {
         if (err) return callback(err);

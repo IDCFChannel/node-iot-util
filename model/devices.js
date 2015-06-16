@@ -35,13 +35,40 @@ Device.prototype.endConnection = function () {
 };
 
 Device.prototype.deleteDevices = function(owner, prefix, times, callback) {
-
 };
+
+var doPostDevice = function(self,opts, callback) {
+    var httpOptions = utils.requestOptions('devices', null, opts);
+    request.post(httpOptions, function(err, response, body) {        
+        if(err || response.statusCode != 201){
+            return callback(new Error('status: ', response.statusCode));
+        } else {
+            var body = JSON.parse(body);
+            var key = '';
+            if(_.startsWith(opts.keyword, master)) {
+                key = body.keyword + ':' + body.token;
+            } else {
+                key = body.keyword;
+            }
+            console.log(body);
+            self.client.hset(key, 'token', body.token);
+            self.client.hset(key, 'uuid', body.uuid);
+            var authHeader = meshbluHeader(body.uuid, body.token);
+            callback(null, body.keyword, authHeader);
+        }
+    });
+}
 
 Device.prototype.createDevices = function(owner, prefix, times, callback) {
     var self = this;
     async.timesSeries(times, function(n, callback) {
+        var opts = {
+            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
+            token: utils.randomToken()
+        };
         async.waterfall([
+            _.partial(doPostDevice, self, opts),
+            /*
             function(callback) {
                 var opts = {
                     keyword: (!owner ? prefix : prefix+'-'+(n+1)),
@@ -66,7 +93,7 @@ Device.prototype.createDevices = function(owner, prefix, times, callback) {
                         callback(null, body.keyword, authHeader);
                     }
                 });
-            },
+            },*/
             function(keyword, authHeader, callback) {
                 var httpOptions = utils.requestOptions('claimdevice/'+authHeader.meshblu_auth_uuid,
                                                   authHeader);
