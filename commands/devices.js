@@ -8,20 +8,20 @@ var request = require('request'),
 //require('request-debug')(request);
 
 function checkDevices(prefix) {
-    return _.includes(['action','trigger'],prefix);
+    return _.includes(['action', 'trigger'], prefix);
 }
 
-function validatePrefix(prefix,callback) {
+function validatePrefix(prefix, callback) {
     if (!checkDevices(prefix)) {
         return callback(new Error('--prefix must be action or trigger'));
     } else {
-        callback(null,prefix);
+        callback(null, prefix);
     }
 }
 
 function commandOwner(options) {
     var client = new Redis();
-    client.ownerExists(function(err,res){
+    client.ownerExists(function(err, res) {
         if (err) return callback(err);
         if (res.length > 0) {
             console.log(res[0]);
@@ -33,7 +33,7 @@ function commandOwner(options) {
 }
 
 function doOwnerCheck(device, callback) {
-    device.ownerExists(function(err,res) {
+    device.ownerExists(function(err, res) {
         if (err) return callback(err);
         if (res.length > 0) {
             return callback(new Error('owner shoud be one; ['+res+'] exists.'));
@@ -75,7 +75,33 @@ function commandRegister(options) {
     ], function(err, results) {
         device.endConnection();
         if(err) return console.log(err.message);
-        console.log("devices registered successfully, owner is ", results)
+        console.log("devices registered successfully, owner is ", results);
+    });
+}
+
+
+function commandWhiten(options) {
+    var device = new Device();
+    var fromDeviceName = 'trigger-5';
+    var toDeviceName = 'action-1';
+    async.waterfall([
+        function(callback) {
+            device.getDevice(fromDeviceName, callback);
+        },
+        function(fromDevice, callback) {
+            device.getDevice(toDeviceName, function(err, res) {
+                if (err) return callback(err);
+                device.getWhiteToDevice(fromDeviceName, fromDevice.uuid,
+                                        device.meshbluHeader(res), callback);
+            });            
+        },
+        function(authHeader, form, callback) {
+            device.putWhiteDevice(true, authHeader, form, callback);
+        }
+    ], function(err, results) {
+        device.endConnection();
+        if(err) return console.log(err.message);
+        console.log(results);
     });
 }
 
@@ -151,5 +177,6 @@ function commandList(options) {
 
 module.exports = {
     commandOwner: commandOwner,
-    commandRegister: commandRegister
+    commandRegister: commandRegister,
+    commandWhiten: commandWhiten
 }

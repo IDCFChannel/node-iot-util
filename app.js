@@ -25,6 +25,11 @@ program
     .action(devices.commandRegister);
 
 program
+    .command('whiten')
+    .description('device whiten')
+    .action(devices.commandWhiten);
+
+program
     .command('create')
     .description('create devices')
     .option('-p, --prefix [prefix]','action or trigger')
