@@ -32,62 +32,69 @@ function commandOwner(options) {
     });
 }
 
+
+function doOwnerCheck(device, callback) {
+    device.ownerExists(function(err,res) {
+        if (err) return callback(err);
+        if (res.length > 0) {
+            return callback(new Error('owner shoud be one; ['+res+'] exists.'));
+        } else {
+            callback(null);
+        }
+    });
+}
+
+function doCreateOwner(device, callback) {
+    device.createDevices(null, master, 1, callback);
+}
+
+function doCreateTrigger(device, res, callback) {
+    if(!res) return callbck(new Error('owner create failed'));
+    var owner = res[0];
+    device.createDevices(owner, 'trigger', 5,
+                         function(err, res) {
+                             if(err) return callback(err);
+                             callback(null, owner);
+                         });    
+}
+
+function doCreateAction(device, owner, callback) {
+    device.createDevices(owner, 'action', 5,
+                         function(err, res) {
+                             if(err) return callback(err);
+                             callback(null, owner);
+                         });
+}
+
 function commandRegister(options) {
-    var prefix = master,
-    times = 1;
     var device = new Device();
     async.waterfall([
-        function(callback) {
-            device.ownerExists(function(err,res) {
-                if (err) return callback(err);
-                if (res.length > 0) {
-                    return callback(new Error('owner shoud be one ['+res+'] exists.'));
-                } else {
-                    callback(null);
-                }
-            });
-        },
-        function(callback) {
-            device.createDevices(null,prefix,times,callback);
-        },
-        function(res,callback){
-            if(!res) return callbck(new Error('owner create failed'));
-            var owner = res[0];
-            device.createDevices(owner,'trigger',5,
-                                 function(err,res){
-                                     if(err) return callback(err);
-                                     callback(null,owner);
-                                 });
-        },
-        function(owner,callback){
-            device.createDevices(owner,'action',5,
-                                 function(err,res){
-                                     if(err) return callback(err);
-                                     callback(null,owner);
-                                 });
-        }
-    ], function(err, results){
+        _.partial(doOwnerCheck, device),
+        _.partial(doCreateOwner, device),
+        _.partial(doCreateTrigger, device),
+        _.partial(doCreateAction, device),
+    ], function(err, results) {
         device.endConnection();
         if(err) return console.log(err.message);
         console.log("devices registered successfully, owner is ", results)
     });
 }
 
-/*
 function commandDelete(options) {
     var prefix = options.prefix;
     if (!validatePrefix(prefix)) return;
-    
-    var keyword = prefix.concat('-*');
-    
-    client.keys(keyword,function(err,res){
+    var device = new Device();
+    var keyword = prefix + '-*';
+
+    device.deleteDevices(keyword,function(err,res){
         res.forEach(function (reply, i) {
             client.del(reply, function(err, o) {
                 if(err) throw err;
             });
         });
     });
-
+    device.endConnection();
+/*
     var httpOptions = utils.requestOptions(__filename,
                                            {keyword:keyword,
                                             token:token});
@@ -105,8 +112,10 @@ function commandDelete(options) {
             console.log('Error: ' + error);
         }
     });
+*/
 }
 
+/*
 function commandList(options) {
     client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                 process.env.REDIS_PORT_6379_TCP_ADDR);

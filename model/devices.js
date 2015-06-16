@@ -34,7 +34,11 @@ Device.prototype.endConnection = function () {
     this.client.quit();
 };
 
-Device.prototype.createDevices = function(owner,prefix,times,callback) {
+Device.prototype.deleteDevices = function(owner, prefix, times, callback) {
+
+};
+
+Device.prototype.createDevices = function(owner, prefix, times, callback) {
     var self = this;
     async.timesSeries(times, function(n, callback) {
         async.waterfall([
@@ -44,26 +48,26 @@ Device.prototype.createDevices = function(owner,prefix,times,callback) {
                     token: utils.randomToken()
                 };
                 var httpOptions = utils.requestOptions('devices', null, opts);
-                request.post(httpOptions,function(err, response, body) {        
+                request.post(httpOptions, function(err, response, body) {        
                     if(err || response.statusCode != 201){
                         return callback(new Error('status: ', response.statusCode));
                     } else {
                         var body = JSON.parse(body);
                         var key = '';
-                        if(_.startsWith(opts.keyword,master)){
+                        if(_.startsWith(opts. keyword, master)) {
                             key = body.keyword + ':' + body.token;
                         } else {
                             key = body.keyword;
                         }
                         console.log(body);
-                        self.client.hset(key,'token', body.token);
-                        self.client.hset(key,'uuid', body.uuid);
-                        var authHeader = meshbluHeader(body.uuid,body.token);
+                        self.client.hset(key, 'token', body.token);
+                        self.client.hset(key, 'uuid', body.uuid);
+                        var authHeader = meshbluHeader(body.uuid, body.token);
                         callback(null, body.keyword, authHeader);
                     }
                 });
             },
-            function(keyword,authHeader,callback) {
+            function(keyword, authHeader, callback) {
                 var httpOptions = utils.requestOptions('claimdevice/'+authHeader.meshblu_auth_uuid,
                                                   authHeader);
                 request.put(httpOptions,function(err, response, body) {
@@ -71,12 +75,12 @@ Device.prototype.createDevices = function(owner,prefix,times,callback) {
                         return callback(new Error('status: ',response.statusCode));
                     } else {
                         var body = JSON.parse(body);
-                        callback(null,keyword,authHeader);
+                        callback(null, keyword, authHeader);
                     }
                 });
             },
-            function(keyword,authHeader,callback) {
-                if(!owner) return callback(null,keyword,authHeader,null);
+            function(keyword, authHeader, callback) {
+                if(!owner) return callback(null, keyword, authHeader, null);
                 var form = {
                     discoverWhitelist: [owner.meshblu_auth_uuid],
                     receiveWhitelist: [owner.meshblu_auth_uuid]
@@ -87,21 +91,21 @@ Device.prototype.createDevices = function(owner,prefix,times,callback) {
                                        if (err) return callback(err);
                                        form.discoverWhitelist.push(res.uuid);
                                        form.receiveWhitelist.push(res.uuid);
-                                       callback(null,keyword,authHeader,form);
+                                       callback(null, keyword, authHeader, form);
                                    });
                 } else {
-                    callback(null,keyword,authHeader,form);
+                    callback(null, keyword, authHeader, form);
                 }
             },
-            function(keyword,authHeader,form,callback) {
-                if(!owner) return callback(null,authHeader);
+            function(keyword, authHeader, form, callback) {
+                if(!owner) return callback(null, authHeader);
                 
                 var httpOptions = utils.requestOptions('devices/'+authHeader.meshblu_auth_uuid,
                                                    authHeader,
                                                    form);
                 request.put(httpOptions,function(err, response, body) {
                     if (err || response.statusCode != 200) {
-                        return callback(new Error('status: ',response.statusCode));
+                        return callback(new Error('status: ', response.statusCode));
                     } else {
                         var body = JSON.parse(body);
                         callback(null, authHeader);
@@ -111,12 +115,12 @@ Device.prototype.createDevices = function(owner,prefix,times,callback) {
         ],
         function(err,results) {
             if (err) return callback(err);
-            callback(null,results);
+            callback(null, results);
         });
     },
     function(err, results) {
         if (err) return callback(err);
-        callback(null,results);
+        callback(null, results);
     });    
 };
 
