@@ -3,9 +3,7 @@ var request = require('request')
 
 module.exports = {
     commandStatus: function(options) {
-
         var options = utils.requestOptions('status');
-
         request.get(options,function(error, response, body) {
             if (!error && response.statusCode == 200){
                 var body = JSON.parse(body);
