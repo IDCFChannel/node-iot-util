@@ -27,6 +27,8 @@ program
 program
     .command('whiten')
     .description('device whiten')
+    .option('-f, --from [from device]','add whitelist from')
+    .option('-t, --to [to device]','add whitelist to')
     .action(devices.commandWhiten);
 
 program

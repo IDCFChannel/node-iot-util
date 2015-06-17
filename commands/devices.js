@@ -81,9 +81,15 @@ function commandRegister(options) {
 
 
 function commandWhiten(options) {
+
+    var fromDeviceName = options.from;
+    var toDeviceName = options.to;
+
+    if(! fromDeviceName || ! toDeviceName){
+        return console.log('from and to device must be set');
+    }
+
     var device = new Device();
-    var fromDeviceName = 'trigger-5';
-    var toDeviceName = 'action-1';
     async.waterfall([
         function(callback) {
             device.getDevice(fromDeviceName, callback);
