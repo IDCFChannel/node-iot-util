@@ -3,8 +3,11 @@ var request = require('request'),
     utils = require('../utils'),
     async = require('async'),
     Device = require('../model/devices'),
-    _ = require('lodash'),
-    master = 'owner';
+    _ = require('lodash');
+
+var master = 'owner',
+    defaultTimes = 5;
+
 //require('request-debug')(request);
 
 function checkDevices(prefix) {
@@ -34,30 +37,20 @@ function doCreateOwner(device, callback) {
     device.createDevices(null, master, 1, callback);
 }
 
-function doCreateTrigger(device, res, callback) {
-    if(!res) return callbck(new Error('owner create failed'));
-    var owner = res[0];
-    device.createDevices(owner, 'trigger', 5,
+function doCreateDevice(device, defaultTimes, deviceType, owner, callback) {
+    if (_.isArray(device)) owner = owner[0];
+    device.createDevices(owner, deviceType, defaultTimes,
                          function(err, res) {
                              if(err) return callback(err);
                              callback(null, owner);
                          });    
 }
 
-function doCreateAction(device, owner, callback) {
-    device.createDevices(owner, 'action', 5,
-                         function(err, res) {
-                             if(err) return callback(err);
-                             callback(null, owner);
-                         });
-}
-
-
 function commandOwner(options) {
     var device = new Device();
     device.getOwner(function(err, res){
         if (err) console.log(err);
-        console.log(res);
+        else console.log(res);
         device.endConnection();
     });
 }
@@ -67,8 +60,8 @@ function commandRegister(options) {
     async.waterfall([
         _.partial(doOwnerCheck, device),
         _.partial(doCreateOwner, device),
-        _.partial(doCreateTrigger, device),
-        _.partial(doCreateAction, device),
+        _.partial(doCreateDevice, device, defaultTimes, 'trigger'),
+        _.partial(doCreateDevice, device, defaultTimes, 'action'),
     ], function(err, results) {
         device.endConnection();
         if(err) return console.log(err.message);
@@ -78,14 +71,11 @@ function commandRegister(options) {
 
 
 function commandWhiten(options) {
-
     var fromDeviceName = options.from;
     var toDeviceName = options.to;
-
     if(! fromDeviceName || ! toDeviceName){
         return console.log('from and to device must be set');
     }
-
     var device = new Device();
     async.waterfall([
         function(callback) {
