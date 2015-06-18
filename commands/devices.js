@@ -19,19 +19,6 @@ function validatePrefix(prefix, callback) {
     }
 }
 
-function commandOwner(options) {
-    var client = new Redis();
-    client.ownerExists(function(err, res) {
-        if (err) return callback(err);
-        if (res.length > 0) {
-            console.log(res[0]);
-        } else {
-            console.log("owner not exists");
-        }
-        client.endConnection();
-    });
-}
-
 function doOwnerCheck(device, callback) {
     device.ownerExists(function(err, res) {
         if (err) return callback(err);
@@ -63,6 +50,16 @@ function doCreateAction(device, owner, callback) {
                              if(err) return callback(err);
                              callback(null, owner);
                          });
+}
+
+
+function commandOwner(options) {
+    var device = new Device();
+    device.getOwner(function(err, res){
+        if (err) console.log(err);
+        console.log(res);
+        device.endConnection();
+    });
 }
 
 function commandRegister(options) {

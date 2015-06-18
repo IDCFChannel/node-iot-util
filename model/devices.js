@@ -196,7 +196,7 @@ Device.prototype.getOwner = function(callback) {
     var self = this;
     async.waterfall([
         function(callback){
-            this.client.ownerExists(function(err, res) {
+            self.ownerExists(function(err, res) {
                 if (err) return callback(err);
                 if (res.length == 0) {
                     return callback(new Error('owner not found'));
@@ -206,7 +206,7 @@ Device.prototype.getOwner = function(callback) {
             });
         },
         function(ownerKey, callback) {
-            this.client.hgetall(ownerKey, function (err,res) {
+            self.client.hgetall(ownerKey, function (err,res) {
                 if (err) return callback(err);
                 var owner = self.meshbluHeader(res);
                 callback(null, owner);
