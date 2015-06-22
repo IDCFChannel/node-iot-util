@@ -22,6 +22,13 @@ function validatePrefix(prefix, callback) {
     }
 }
 
+function doGetOwner(device, callback) {
+    device.getOwner(function(err, res){
+        if (err) return callback(err);
+        callback(null, res);
+    });
+}
+
 function doOwnerCheck(device, callback) {
     device.ownerExists(function(err, res) {
         if (err) return callback(err);
@@ -36,6 +43,7 @@ function doOwnerCheck(device, callback) {
 function doCreateOwner(device, callback) {
     device.createDevices(null, master, 1, callback);
 }
+
 
 function doCreateDevice(device, defaultTimes, deviceType, owner, callback) {
     if (_.isArray(device)) owner = owner[0];
@@ -55,6 +63,19 @@ function commandOwner(options) {
     });
 }
 
+function commandCreate(options) {
+    var device = new Device();
+    async.waterfall([
+        _.partial(doOwnerCheck, device),
+        _.partial(doCreateOwner, device),
+        _.partial(doCreateDevice, device, defaultTimes, 'trigger'),
+    ], function(err, results) {
+        device.endConnection();
+        if(err) return console.log(err.message);
+        console.log("devices registered successfully");
+    });
+}
+
 function commandRegister(options) {
     var device = new Device();
     async.waterfall([
@@ -68,7 +89,6 @@ function commandRegister(options) {
         console.log("devices registered successfully, owner is ", results);
     });
 }
-
 
 function commandWhiten(options) {
     var fromDeviceName = options.from;
@@ -171,5 +191,6 @@ function commandList(options) {
 module.exports = {
     commandOwner: commandOwner,
     commandRegister: commandRegister,
+    commandCreate: commandCreate,
     commandWhiten: commandWhiten
 }

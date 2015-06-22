@@ -131,7 +131,6 @@ function doGetWhiteDevice(self, owner, keyword, authHeader, callback) {
             form.receiveWhitelist.push(res.uuid);
             callback(null, authHeader, form);
         });
-
     } else {
         callback(null, authHeader, form);
     }
@@ -199,7 +198,7 @@ Device.prototype.getOwner = function(callback) {
             self.ownerExists(function(err, res) {
                 if (err) return callback(err);
                 if (res.length == 0) {
-                    return callback(new Error('owner not found'));
+                    return callback(new Error('owner not found'), res);
                 } else {
                     callback(null, res[0]);
                 }
