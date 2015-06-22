@@ -2,7 +2,10 @@
 var request = require('request'),
     utils = require('../utils'),
     async = require('async'),
-    Device = require('../model/devices'),
+    Redis = require('../initializers/redis'),
+    redis = new Redis(),
+    Device = require('../initializers/device'),
+    device = new Device(redis.client),
     _ = require('lodash');
 
 var master = 'owner',
@@ -22,14 +25,14 @@ function validatePrefix(prefix, callback) {
     }
 }
 
-function doGetOwner(device, callback) {
+function getOwner(callback) {
     device.getOwner(function(err, res){
         if (err) return callback(err);
         callback(null, res);
     });
 }
 
-function doOwnerCheck(device, callback) {
+function ownerCheck(callback) {
     device.ownerExists(function(err, res) {
         if (err) return callback(err);
         if (res.length > 0) {
@@ -40,22 +43,40 @@ function doOwnerCheck(device, callback) {
     });
 }
 
-function doCreateOwner(device, callback) {
-    device.createDevices(null, master, 1, callback);
+function createDevice(times, prefix, owner, callback) {
+    async.timesSeries(times, function(n, callback) {
+        var opts = {
+            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
+            token: utils.randomToken()
+        };
+        async.waterfall([
+            function(callback) {
+                device.doPostDevice(opts, callback);
+            },
+            function(keyword, authHeader, callback) {
+                device.doPutClaimDevice(keyword, authHeader, callback);
+            },
+            function(keyword, authHeader, callback){
+                device.doGetWhiteDevice(owner, keyword, authHeader, callback);
+            },
+            function(authHeader, form, callback) {
+                device.putWhiteDevice(owner, authHeader, form, callback);
+            }
+        ], function(err, results) {
+            if (err) return callback(err);
+            callback(null, results);
+        });
+    }, function(err, results) {
+        if (err) return callback(err);
+        callback(null, results);
+    });
 }
 
-
-function doCreateDevice(device, defaultTimes, deviceType, owner, callback) {
-    if (_.isArray(device)) owner = owner[0];
-    device.createDevices(owner, deviceType, defaultTimes,
-                         function(err, res) {
-                             if(err) return callback(err);
-                             callback(null, owner);
-                         });    
+function createOwner(callback) {
+    createDevice(1, master, null, callback);
 }
 
 function commandOwner(options) {
-    var device = new Device();
     device.getOwner(function(err, res){
         if (err) console.log(err);
         else console.log(res);
@@ -64,25 +85,25 @@ function commandOwner(options) {
 }
 
 function commandCreate(options) {
-    var device = new Device();
+/*
     async.waterfall([
-        _.partial(doOwnerCheck, device),
-        _.partial(doCreateOwner, device),
-        _.partial(doCreateDevice, device, defaultTimes, 'trigger'),
+        ownerCheck,
+        createOwner,
+        _.partial(createDevice, defaultTimes, 'trigger'),
     ], function(err, results) {
         device.endConnection();
         if(err) return console.log(err.message);
         console.log("devices registered successfully");
     });
+*/
 }
 
 function commandRegister(options) {
-    var device = new Device();
     async.waterfall([
-        _.partial(doOwnerCheck, device),
-        _.partial(doCreateOwner, device),
-        _.partial(doCreateDevice, device, defaultTimes, 'trigger'),
-        _.partial(doCreateDevice, device, defaultTimes, 'action'),
+        ownerCheck,
+        createOwner,
+        _.partial(createDevice, defaultTimes, 'action'),
+        _.partial(createDevice, defaultTimes, 'trigger'),
     ], function(err, results) {
         device.endConnection();
         if(err) return console.log(err.message);
@@ -93,11 +114,14 @@ function commandRegister(options) {
 function commandWhiten(options) {
     var fromDeviceName = options.from;
     var toDeviceName = options.to;
-    if(! fromDeviceName || ! toDeviceName){
-        return console.log('from and to device must be set');
-    }
-    var device = new Device();
     async.waterfall([
+        function(callback) {
+            if(! fromDeviceName || ! toDeviceName){
+                return callback(new Error(console.log('from and to device must be set')));
+            } else {
+                callback(null);
+            }
+        },
         function(callback) {
             device.getDevice(fromDeviceName, callback);
         },
@@ -121,7 +145,6 @@ function commandWhiten(options) {
 function commandDelete(options) {
     var prefix = options.prefix;
     if (!validatePrefix(prefix)) return;
-    var device = new Device();
     var keyword = prefix + '-*';
 
     device.deleteDevices(keyword,function(err,res){
