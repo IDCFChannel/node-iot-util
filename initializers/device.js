@@ -6,38 +6,19 @@ var request = require('request'),
     _ = require('lodash'),
     master = 'owner';
 
-function isDevice(keyword,name) {
-    return _.startsWith(keyword, name);
-}
-
-function isMaster(keyword) {
-    return isDevice(keyword, master);
-}
-
-function isAction(keyword) {
-    return isDevice(keyword, 'action');
-}
-
-function isTrigger(keyword) {
-    return isDevice(keyword, 'trigger');
+function buildHeader(res) {
+    return {
+        meshblu_auth_uuid: res.uuid,
+        meshblu_auth_token: res.token
+    };
 }
 
 module.exports = function(client) {
-
     return {
-        meshbluHeader: function(res) {
-            return {
-                meshblu_auth_uuid: res.uuid,
-                meshblu_auth_token: res.token
-            };
-        },
-
         deleteDevices: function(owner, prefix, times, callback) {
         },
 
-        doPostDevice: function(opts, callback) {
-            var self = this;
-            console.log(self);
+        doPostDevice: function(client, opts, callback) {
             var httpOptions = utils.requestOptions('devices', null, opts);
             request.post(httpOptions, function(err, response, body) {        
                 if(err || response.statusCode != 201){
@@ -45,7 +26,7 @@ module.exports = function(client) {
                 } else {
                     var body = JSON.parse(body);
                     var key = '';
-                    if(isMaster(opts.keyword)) {
+                    if(_.startsWith(opts.keyword, master)) {
                         key = body.keyword + ':' + body.token;
                     } else {
                         key = body.keyword;
@@ -53,7 +34,7 @@ module.exports = function(client) {
                     console.log(body);
                     client.hset(key, 'token', body.token);
                     client.hset(key, 'uuid', body.uuid);
-                    var authHeader = self.meshbluHeader(body);
+                    var authHeader = buildHeader(body);
                     callback(null, body.keyword, authHeader);
                 }
             });
@@ -101,28 +82,6 @@ module.exports = function(client) {
                 callback(null, authHeader, form);
             })
         },
-
-        doGetWhiteDevice: function(owner, keyword, authHeader, callback) {
-            if(!owner) return callback(null, authHeader, null);
-            var self = this;
-            var form = {
-                discoverWhitelist: [owner.meshblu_auth_uuid],
-                receiveWhitelist: [owner.meshblu_auth_uuid]
-            };
-
-            if (isTrigger(keyword)) {
-                var fromDeviceName = 'action-'+keyword.split('-')[1];
-                self.getDevice(fromDeviceName, function(err, res) {
-                    if (err) return callback(err);
-                    form.discoverWhitelist.push(res.uuid);
-                    form.receiveWhitelist.push(res.uuid);
-                    callback(null, authHeader, form);
-                });
-            } else {
-                callback(null, authHeader, form);
-            }
-        },
-
         getDeviceRest: function(authHeader, callback) {
             var httpOptions = utils.requestOptions('devices/'+authHeader.meshblu_auth_uuid,
                                                    authHeader,null);
@@ -191,7 +150,7 @@ module.exports = function(client) {
                 },
                 function(ownerKey, callback) {
                     client.hgetall(ownerKey, function (err,res) {
-                        var owner = self.meshbluHeader(res);
+                        var owner = buildHeader(res);
                         callback(err, owner);
                     });
                 }

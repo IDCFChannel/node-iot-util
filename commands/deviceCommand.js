@@ -1,10 +1,9 @@
 'use strict';
-var request = require('request'),
-    utils = require('../utils'),
+
+var utils = require('../utils'),
     async = require('async'),
     redis = require('../initializers/redis'),
     device = require('../initializers/device')(redis),
-    
     _ = require('lodash');
 
 var master = 'owner',
@@ -31,6 +30,25 @@ function getOwner(callback) {
     });
 }
 
+function getWhiteDevice(owner, keyword, authHeader, callback) {
+    if(!owner) return callback(null, owner, authHeader, null);
+    var form = {
+        discoverWhitelist: [owner.meshblu_auth_uuid],
+        receiveWhitelist: [owner.meshblu_auth_uuid]
+    };
+    if (_.startsWith(keyword, 'trigger')) {
+        var fromDeviceName = 'action-'+keyword.split('-')[1];
+        device.getDevice(fromDeviceName, function(err, res) {
+            if (err) return callback(err);
+            form.discoverWhitelist.push(res.uuid);
+            form.receiveWhitelist.push(res.uuid);
+            callback(null, owner, authHeader, form);
+        });
+    } else {
+        callback(null, owner, authHeader, form);
+    }
+}
+
 function ownerCheck(callback) {
     device.ownerExists(function(err, res) {
         if (err) return callback(err);
@@ -49,21 +67,10 @@ function createDevice(times, prefix, owner, callback) {
             token: utils.randomToken()
         };
         async.waterfall([
-            
-            function(callback) {
-                device.doPostDevice(opts, callback);
-            },
-            
-            //_.partial(device.doPostDevice, opts),
-            function(keyword, authHeader, callback) {
-                device.doPutClaimDevice(keyword, authHeader, callback);
-            },
-            function(keyword, authHeader, callback){
-                device.doGetWhiteDevice(owner, keyword, authHeader, callback);
-            },
-            function(authHeader, form, callback) {
-                device.putWhiteDevice(owner, authHeader, form, callback);
-            }
+            _.partial(device.doPostDevice, redis, opts),
+            device.doPutClaimDevice,
+            _.partial(getWhiteDevice, owner),
+            device.putWhiteDevice
         ], function(err, results) {
             if (err) return callback(err);
             callback(null, results);
@@ -127,6 +134,7 @@ function commandWhiten(options) {
         function(callback) {
             device.getDevice(fromDeviceName, callback);
         },
+
         function(fromDevice, callback) {
             device.getDevice(toDeviceName, function(err, res) {
                 if (err) return callback(err);
