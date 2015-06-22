@@ -139,7 +139,7 @@ function commandWhiten(options) {
             device.getDevice(toDeviceName, function(err, res) {
                 if (err) return callback(err);
                 device.getWhiteToDevice(fromDeviceName, fromDevice.uuid,
-                                        device.meshbluHeader(res), callback);
+                                        utils.buildHeader(res), callback);
             });            
         },
         function(authHeader, form, callback) {

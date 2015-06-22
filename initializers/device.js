@@ -6,14 +6,8 @@ var request = require('request'),
     _ = require('lodash'),
     master = 'owner';
 
-function buildHeader(res) {
-    return {
-        meshblu_auth_uuid: res.uuid,
-        meshblu_auth_token: res.token
-    };
-}
-
 module.exports = function(client) {
+
     return {
         deleteDevices: function(owner, prefix, times, callback) {
         },
@@ -34,7 +28,7 @@ module.exports = function(client) {
                     console.log(body);
                     client.hset(key, 'token', body.token);
                     client.hset(key, 'uuid', body.uuid);
-                    var authHeader = buildHeader(body);
+                    var authHeader = utils.buildHeader(body);
                     callback(null, body.keyword, authHeader);
                 }
             });
