@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 var program = require('commander')
-  , status  = require('./commands/status.js')
-  , devices = require('./commands/devices.js');
+  , status  = require('./commands/statusCommand.js')
+  , device = require('./commands/deviceCommand.js');
 
 program
     .version('0.0.1')
@@ -17,39 +17,39 @@ program
 program
     .command('owner')
     .description('show owner keyword and token')
-    .action(devices.commandOwner);
+    .action(device.commandOwner);
 
 program
     .command('register')
-    .description('register devices')
-    .action(devices.commandRegister);
+    .description('register device')
+    .action(device.commandRegister);
 
 program
     .command('whiten')
     .description('device whiten')
     .option('-f, --from [from device]','add whitelist from')
     .option('-t, --to [to device]','add whitelist to')
-    .action(devices.commandWhiten);
+    .action(device.commandWhiten);
 
 program
     .command('create')
-    .description('create devices')
+    .description('create device')
     .option('-p, --prefix [prefix]','action or trigger')
     .option('-t, --times <n>','create times',parseInt)
-    .action(devices.commandCreate);
+    .action(device.commandCreate);
 
 program
     .command('delete')
     .description('delete all devices')
     .option('-p, --prefix [prefix]','action or trigger')
-    .action(devices.commandDelete);
+    .action(device.commandDelete);
 
 program
     .command('list')
     .description('list devices')
     .option('-l, --list','list devices')
     .option('-p, --prefix [prefix]','action or trigger or mythings')
-    .action(devices.commandList);
+    .action(device.commandList);
 
 program.parse(process.argv);
 

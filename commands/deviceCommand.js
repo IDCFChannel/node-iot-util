@@ -2,10 +2,9 @@
 var request = require('request'),
     utils = require('../utils'),
     async = require('async'),
-    Redis = require('../initializers/redis'),
-    redis = new Redis(),
-    Device = require('../initializers/device'),
-    device = new Device(redis.client),
+    redis = require('../initializers/redis'),
+    device = require('../initializers/device')(redis),
+    
     _ = require('lodash');
 
 var master = 'owner',
@@ -50,9 +49,12 @@ function createDevice(times, prefix, owner, callback) {
             token: utils.randomToken()
         };
         async.waterfall([
+            
             function(callback) {
                 device.doPostDevice(opts, callback);
             },
+            
+            //_.partial(device.doPostDevice, opts),
             function(keyword, authHeader, callback) {
                 device.doPutClaimDevice(keyword, authHeader, callback);
             },
@@ -80,7 +82,7 @@ function commandOwner(options) {
     device.getOwner(function(err, res){
         if (err) console.log(err);
         else console.log(res);
-        device.endConnection();
+        redis.quit();
     });
 }
 
@@ -105,7 +107,7 @@ function commandRegister(options) {
         _.partial(createDevice, defaultTimes, 'action'),
         _.partial(createDevice, defaultTimes, 'trigger'),
     ], function(err, results) {
-        device.endConnection();
+        redis.quit();
         if(err) return console.log(err.message);
         console.log("devices registered successfully, owner is ", results);
     });
@@ -136,7 +138,7 @@ function commandWhiten(options) {
             device.putWhiteDevice(true, authHeader, form, callback);
         }
     ], function(err, results) {
-        device.endConnection();
+        redis.quit();
         if(err) return console.log(err.message);
         console.log(results);
     });
@@ -154,7 +156,7 @@ function commandDelete(options) {
             });
         });
     });
-    device.endConnection();
+    redis.quit();
 /*
     var httpOptions = utils.requestOptions(__filename,
                                            {keyword:keyword,
