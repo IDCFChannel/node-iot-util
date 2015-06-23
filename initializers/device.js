@@ -13,25 +13,35 @@ module.exports = function(client) {
         deleteDevices: function(owner, prefix, times, callback) {
         },
 
+        getEntryKey: function(body, opts, callback) {
+            var self = this;
+            if(utils.isOwner(opts.keyword)) {
+                callback(null, utils.buildOwnerName(body.keyword, body.token));
+            } else {
+                self.getOwnerHeader(function(err, res) {
+                    if(err) return callback(err);
+                    callback(null,
+                             utils.buildDeviceName(body.keyword, res.meshblu_auth_token));
+                });
+            }
+        },
+
         // call meshblu api and store hashed token in redis
-        doPostDevice: function(client, opts, callback) {
+        doPostDevice: function(opts, callback) {
+            var self = this;
             var httpOptions = utils.requestOptions('devices', null, opts);
             request.post(httpOptions, function(err, response, body) {        
                 if(err || response.statusCode != 201){
                     return callback(new Error('status: '+ response.statusCode));
                 } else {
                     var body = JSON.parse(body);
-                    var key = '';
-                    if(utils.isOwner(opts.keyword)) {
-                        key = utils.buildOwnerName(body.keyword, body.token);
-                    } else {
-                        key = utils.buildDeviceName(body.keyword);
-                    }
-                    console.log(body);
-                    client.hset(key, 'token', body.token);
-                    client.hset(key, 'uuid', body.uuid);
-                    var authHeader = utils.buildHeader(body);
-                    callback(null, body.keyword, authHeader);
+                    if (!body) return callback(new Error('no response frm post device'));
+                    self.getEntryKey(body, opts, function(err,res) {
+                        client.hset(res, 'token', body.token);
+                        client.hset(res, 'uuid', body.uuid);
+                        var authHeader = utils.buildHeader(body);
+                        callback(null, body.keyword, authHeader);
+                    });
                 }
             });
         },
@@ -51,11 +61,18 @@ module.exports = function(client) {
         },
 
         getDevice: function(keyword, callback) {
-            var key = utils.buildDeviceName(keyword);
-            client.hgetall(key, function (err, res) {
-                if (err) return callback(err);
-                if (!res) return callback(new Error('device not found from name; ', keyword));
-                callback(null, res);
+            var self = this;
+            self.getOwnerHeader(function(err, res) {
+                if(err) return callback(err);
+                var key = utils.buildDeviceName(keyword, res.meshblu_auth_token);
+
+                client.hgetall(key, function (err, res) {
+                    if (err) return callback(err);
+                    if (!res) return callback(new Error('device not found from name; ', keyword));
+                    callback(null, res);
+                });
+ 
+
             });
         },
 
@@ -104,6 +121,7 @@ module.exports = function(client) {
                 },
                 function(ownerKey, callback) {
                     client.hgetall(ownerKey, function (err, res) {
+                        if(err) return callback(err);                        
                         var ownerHeader = utils.buildHeader(res);
                         callback(err, ownerHeader);
                     });

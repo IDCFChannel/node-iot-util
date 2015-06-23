@@ -19,7 +19,6 @@ function validatePrefix(prefix, callback) {
     }
 }
 
-
 function getWhiteDevice(owner, keyword, authHeader, callback) {
     // owner is null if himself
     if(!owner) return callback(null, owner, authHeader, null);
@@ -29,8 +28,9 @@ function getWhiteDevice(owner, keyword, authHeader, callback) {
             discoverWhitelist: [res.meshblu_auth_uuid],
             receiveWhitelist: [res.meshblu_auth_uuid]
         };
+
         if (utils.isTrigger(keyword)) {
-            device.getDevice(utils.buildActionName(keyword),
+            device.getDevice(utils.buildActionName(keyword, res.meshblu_auth_token),
                              function(err, res) {
                                  if (err) return callback(err);
                                  form.discoverWhitelist.push(res.uuid);
@@ -54,11 +54,14 @@ function ownerCheck(callback) {
     });
 }
 
+
 function createDevice(times, prefix, owner, callback) {
     async.timesSeries(times, function(n, callback) {
         var opts = utils.buildBaseOptions(owner, prefix, n);
         async.waterfall([
-            _.partial(device.doPostDevice, redis, opts),
+            function(callback) {
+                device.doPostDevice(opts, callback);
+            },
             device.doPutClaimDevice,
             _.partial(getWhiteDevice, owner),
             device.putWhiteDevice
@@ -105,12 +108,17 @@ function commandRegister(options) {
         _.partial(createDevice, defaultTimes, utils.action),
         _.partial(createDevice, defaultTimes, utils.trigger),
     ], function(err, results) {
-        redis.quit();
-        if(err) return console.log(err.message);
-        console.log("devices registered successfully, owner is ", results[0]);
+        if(err) {
+            redis.quit();
+            console.log(err.message);
+        } else {
+            device.getOwnerHeader(function(err, res) {
+                console.log("devices registered successfully, owner is ", res);
+                redis.quit();
+            });
+        }
     });
 }
-
 
 function whitenDevice(fromKeyword, toKeyword, authHeader, body, callback) {
     if(! body) {

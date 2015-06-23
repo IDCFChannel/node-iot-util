@@ -30,13 +30,15 @@ module.exports = {
        return  this.owners+':'+keyword+':'+token;
     },
     
-    buildDeviceName: function(keyword) {
+    buildDeviceName: function(keyword, ownerToken) {
         var namespace = (this.isTrigger(keyword) 
                       ? this.triggers : this.actions);
-        return namespace+':'+keyword;
+        console.log(namespace+':'+keyword+':'+ownerToken);
+        return namespace+':'+keyword+':'+ownerToken;
     },
 
-    buildActionName: function(keyword) {
+    buildActionName: function(keyword, ownerToken) {
+        //return this.action+'-'+keyword.split('-')[1]+':'+ownerToken;
         return this.action+'-'+keyword.split('-')[1];
     },
 
