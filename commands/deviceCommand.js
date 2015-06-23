@@ -19,30 +19,24 @@ function validatePrefix(prefix, callback) {
     }
 }
 
-function getOwner(callback) {
-    device.getOwner(function(err, res){
-        if (err) return callback(err);
-        callback(null, res);
-    });
-}
 
 function getWhiteDevice(owner, keyword, authHeader, callback) {
     // owner is null if himself
     if(!owner) return callback(null, owner, authHeader, null);
-    device.getOwner(function(err, res) {
+    device.getOwnerHeader(function(err, res) {
+        if(err) return callback(err);
         var form = {
             discoverWhitelist: [res.meshblu_auth_uuid],
             receiveWhitelist: [res.meshblu_auth_uuid]
         };
-        var util = require('util');
-        if (_.startsWith(keyword, 'trigger')) {
-            var fromDeviceName = 'action-'+keyword.split('-')[1];
-            device.getDevice(fromDeviceName, function(err, res) {
-                if (err) return callback(err);
-                form.discoverWhitelist.push(res.uuid);
-                form.receiveWhitelist.push(res.uuid);
-                callback(null, owner, authHeader, form);
-            });
+        if (utils.isTrigger(keyword)) {
+            device.getDevice(utils.buildActionName(keyword),
+                             function(err, res) {
+                                 if (err) return callback(err);
+                                 form.discoverWhitelist.push(res.uuid);
+                                 form.receiveWhitelist.push(res.uuid);
+                                 callback(null, owner, authHeader, form);
+                             });
         } else {
             callback(null, owner, authHeader, form);
         }
@@ -62,10 +56,7 @@ function ownerCheck(callback) {
 
 function createDevice(times, prefix, owner, callback) {
     async.timesSeries(times, function(n, callback) {
-        var opts = {
-            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
-            token: utils.randomToken()
-        };
+        var opts = utils.buildBaseOptions(owner, prefix, n);
         async.waterfall([
             _.partial(device.doPostDevice, redis, opts),
             device.doPutClaimDevice,
@@ -86,7 +77,7 @@ function createOwner(callback) {
 }
 
 function commandOwner(options) {
-    device.getOwner(function(err, res){
+    device.getOwnerHeader(function(err, res){
         if (err) console.log(err);
         else console.log(res);
         redis.quit();
@@ -111,8 +102,8 @@ function commandRegister(options) {
     async.waterfall([
         ownerCheck,
         createOwner,
-        _.partial(createDevice, defaultTimes, 'action'),
-        _.partial(createDevice, defaultTimes, 'trigger'),
+        _.partial(createDevice, defaultTimes, utils.action),
+        _.partial(createDevice, defaultTimes, utils.trigger),
     ], function(err, results) {
         redis.quit();
         if(err) return console.log(err.message);
@@ -120,33 +111,38 @@ function commandRegister(options) {
     });
 }
 
+
+function whitenDevice(fromKeyword, toKeyword, authHeader, body, callback) {
+    if(! body) {
+        return callback(new Error(toKeyword + ' is not found'));
+    }
+    var toDevice = body.devices[0];
+    device.getDevice(fromKeyword, function(err, res) {
+        if (err) return callback(err);
+        var fromUuid = res.uuid
+        if(utils.isWhiten(toDevice, fromUuid)) {
+            var msg = toDevice.keyword+' whitelists already contains '+fromKeyword;
+            return callback(new Error(msg));
+        }
+        var form = utils.buildWhiteToForm(toDevice, fromUuid);
+        device.putWhiteDevice(true, authHeader, form, callback);
+    });
+};
+
 function commandWhiten(options) {
-    var fromDeviceName = options.from;
-    var toDeviceName = options.to;
+    var fromKeyword = options.from;
+    var toKeyword = options.to;
     async.waterfall([
         function(callback) {
-            if(! fromDeviceName || ! toDeviceName){
-                return callback(new Error(console.log('from and to device must be set')));
-            } else {
-                callback(null);
+            if(! fromKeyword || ! toKeyword){
+                callback(new Error(
+                    'from ['+fromKeyword+'] and to ['+toKeyword+'] device must be set'));
             }
+            callback(null);
         },
-
-        function(callback) {
-            device.getDevice(fromDeviceName, callback);
-        },
-
-        function(fromDevice, callback) {
-            device.getDevice(toDeviceName, function(err, res) {
-                if (err) return callback(err);
-                device.getWhiteToDevice(fromDeviceName, fromDevice.uuid,
-                                        utils.buildHeader(res), callback);
-            });            
-        },
-
-        function(authHeader, form, callback) {
-            device.putWhiteDevice(true, authHeader, form, callback);
-        }
+        _.partial(device.getDevice, toKeyword),
+        device.httpGetDevice,
+        _.partial(whitenDevice, fromKeyword, toKeyword)
     ], function(err, results) {
         redis.quit();
         if(err) return console.log(err.message);

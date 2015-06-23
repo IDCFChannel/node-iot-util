@@ -5,8 +5,43 @@ var path = require('path'),
 
 module.exports = {
 
+    // constants
+    master: 'owner',
+    action: 'action',
+    trigger: 'trigger',
+    owners: 'owners',
+    actions: 'actions',
+    triggers: 'triggers',
+        
+    isDevice: function(keyword, label) {
+        return _.startsWith(keyword, label)
+    },
+
+    isTrigger: function(keyword) {
+        return this.isDevice(keyword, this.trigger);
+    },
+
+    isOwner: function(keyword) {
+        return this.isDevice(keyword, this.master);
+    },
+
+    // helpers
+    buildOwnerName: function(keyword, token) {
+       return  this.owners+':'+keyword+':'+token;
+    },
+    
+    buildDeviceName: function(keyword) {
+        var namespace = (this.isTrigger(keyword) 
+                      ? this.triggers : this.actions);
+        return namespace+':'+keyword;
+    },
+
+    buildActionName: function(keyword) {
+        return this.action+'-'+keyword.split('-')[1];
+    },
+
     checkDevices: function(prefix) {
-        return _.includes(['action', 'trigger'], prefix);
+        return _.includes([this.action, this.trigger], prefix);
     },
 
     buildHeader: function(res) {
@@ -14,6 +49,32 @@ module.exports = {
             meshblu_auth_uuid: res.uuid,
             meshblu_auth_token: res.token
         };
+    },
+    
+    isWhiten: function(toDevice, fromUuid) {
+        if (_.includes(toDevice.discoverWhitelist, fromUuid) ||
+            _.includes(toDevice.receiveWhitelist, fromUuid) ) {
+            return true;
+        } else {
+            return false;
+        }        
+    },
+
+    buildBaseOptions: function(owner, prefix, n) {
+        return {
+            keyword: (!owner ? prefix : prefix+'-'+(n+1)),
+            token: this.randomToken()
+        };
+    },
+
+    buildWhiteToForm: function(toDevice, fromUuid) {
+        var form = {
+            discoverWhitelist: _.toArray(toDevice.discoverWhitelist),
+            receiveWhitelist: _.toArray(toDevice.receiveWhitelist)
+        };
+        form.discoverWhitelist.push(fromUuid);
+        form.receiveWhitelist.push(fromUuid);
+        return form;
     },
 
     randomToken: function() {
@@ -25,7 +86,7 @@ module.exports = {
         return basename.substr(0, basename.lastIndexOf('.'));
     },
 
-    requestOptions: function(command,headers,form){
+    requestOptions: function(command, headers, form){
         var options = {
             url: process.env.MESHBLU_URL + command ,
             agentOptions: {
