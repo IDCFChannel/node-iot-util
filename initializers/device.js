@@ -67,6 +67,7 @@ module.exports = function(client) {
                     _.includes(toDevice.receiveWhitelist, fromDeviceUuid) ) {
                     return callback(new Error(toDevice.keyword + ' whitelists already contains ' + fromDeviceName));
                 }
+
                 var form = {
                     discoverWhitelist: toDevice.discoverWhitelist,
                     receiveWhitelist: toDevice.receiveWhitelist
@@ -145,7 +146,7 @@ module.exports = function(client) {
                 },
                 function(ownerKey, callback) {
                     client.hgetall(ownerKey, function (err,res) {
-                        var owner = buildHeader(res);
+                        var owner = utils.buildHeader(res);
                         callback(err, owner);
                     });
                 }

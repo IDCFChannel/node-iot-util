@@ -27,22 +27,26 @@ function getOwner(callback) {
 }
 
 function getWhiteDevice(owner, keyword, authHeader, callback) {
+    // owner is null if himself
     if(!owner) return callback(null, owner, authHeader, null);
-    var form = {
-        discoverWhitelist: [owner.meshblu_auth_uuid],
-        receiveWhitelist: [owner.meshblu_auth_uuid]
-    };
-    if (_.startsWith(keyword, 'trigger')) {
-        var fromDeviceName = 'action-'+keyword.split('-')[1];
-        device.getDevice(fromDeviceName, function(err, res) {
-            if (err) return callback(err);
-            form.discoverWhitelist.push(res.uuid);
-            form.receiveWhitelist.push(res.uuid);
+    device.getOwner(function(err, res) {
+        var form = {
+            discoverWhitelist: [res.meshblu_auth_uuid],
+            receiveWhitelist: [res.meshblu_auth_uuid]
+        };
+        var util = require('util');
+        if (_.startsWith(keyword, 'trigger')) {
+            var fromDeviceName = 'action-'+keyword.split('-')[1];
+            device.getDevice(fromDeviceName, function(err, res) {
+                if (err) return callback(err);
+                form.discoverWhitelist.push(res.uuid);
+                form.receiveWhitelist.push(res.uuid);
+                callback(null, owner, authHeader, form);
+            });
+        } else {
             callback(null, owner, authHeader, form);
-        });
-    } else {
-        callback(null, owner, authHeader, form);
-    }
+        }
+    });
 }
 
 function ownerCheck(callback) {

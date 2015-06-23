@@ -15,13 +15,16 @@ module.exports = {
             meshblu_auth_token: res.token
         };
     },
+
     randomToken: function() {
         return chance.hash({length: 8})    
     },
+
     commandName: function(filename){
         var basename = path.basename(filename);
         return basename.substr(0, basename.lastIndexOf('.'));
     },
+
     requestOptions: function(command,headers,form){
         var options = {
             url: process.env.MESHBLU_URL + command ,
