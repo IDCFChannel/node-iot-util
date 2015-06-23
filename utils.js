@@ -1,8 +1,14 @@
 var path = require('path'),
     Chance = require('chance'),
-    chance = new Chance();
+    chance = new Chance(),
+    _ = require('lodash');
 
 module.exports = {
+
+    checkDevices: function(prefix) {
+        return _.includes(['action', 'trigger'], prefix);
+    },
+
     buildHeader: function(res) {
         return {
             meshblu_auth_uuid: res.uuid,

@@ -11,12 +11,8 @@ var master = 'owner',
 
 //require('request-debug')(request);
 
-function checkDevices(prefix) {
-    return _.includes(['action', 'trigger'], prefix);
-}
-
 function validatePrefix(prefix, callback) {
-    if (!checkDevices(prefix)) {
+    if (!utils.checkDevices(prefix)) {
         return callback(new Error('--prefix must be action or trigger'));
     } else {
         callback(null, prefix);
@@ -116,7 +112,7 @@ function commandRegister(options) {
     ], function(err, results) {
         redis.quit();
         if(err) return console.log(err.message);
-        console.log("devices registered successfully, owner is ", results);
+        console.log("devices registered successfully, owner is ", results[0]);
     });
 }
 
@@ -131,6 +127,7 @@ function commandWhiten(options) {
                 callback(null);
             }
         },
+
         function(callback) {
             device.getDevice(fromDeviceName, callback);
         },
@@ -142,13 +139,14 @@ function commandWhiten(options) {
                                         utils.buildHeader(res), callback);
             });            
         },
+
         function(authHeader, form, callback) {
             device.putWhiteDevice(true, authHeader, form, callback);
         }
     ], function(err, results) {
         redis.quit();
         if(err) return console.log(err.message);
-        console.log(results);
+        else console.log(results);
     });
 }
 

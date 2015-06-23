@@ -9,6 +9,7 @@ var request = require('request'),
 module.exports = function(client) {
 
     return {
+
         deleteDevices: function(owner, prefix, times, callback) {
         },
 
