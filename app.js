@@ -11,7 +11,6 @@ program
 
 program
     .command('status')
-    .option('-s, --status','Meshblu status')
     .description('show status')
     .action(status.commandStatus);
 

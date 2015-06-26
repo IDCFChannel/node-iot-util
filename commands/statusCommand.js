@@ -1,5 +1,6 @@
-var request = require('request')
-  , utils = require('../utils');
+var request = require('request'),
+    redis = require('../initializers/redis'),
+    utils = require('../utils');
 
 module.exports = {
     commandStatus: function(options) {
@@ -11,6 +12,7 @@ module.exports = {
             } else if (error) {
                 console.log('Error: ' + error);
             }
+            redis.quit();
         });
     }
 }
