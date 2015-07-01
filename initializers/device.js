@@ -61,11 +61,11 @@ module.exports = function(client) {
         },
 
         getDevice: function(keyword, callback) {
+            if (!keyword) return callback(new Error('keyword is required'));
             var self = this;
             self.getOwnerHeader(function(err, res) {
                 if(err) return callback(err);
                 var key = utils.buildDeviceName(keyword, res.meshblu_auth_token);
-
                 client.hgetall(key, function (err, res) {
                     if (err) return callback(err);
                     if (!res) return callback(new Error('device not found from name; ', keyword));

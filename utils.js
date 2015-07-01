@@ -33,7 +33,6 @@ module.exports = {
     buildDeviceName: function(keyword, ownerToken) {
         var namespace = (this.isTrigger(keyword) 
                       ? this.triggers : this.actions);
-        console.log(namespace+':'+keyword+':'+ownerToken);
         return namespace+':'+keyword+':'+ownerToken;
     },
 

@@ -20,6 +20,12 @@ program
     .action(device.commandOwner);
 
 program
+    .command('show')
+    .description('show device keyword and token')
+    .option('-k, --keyword [keyword]','device keyword')
+    .action(device.commandShow);
+
+program
     .command('register')
     .description('register device')
     .action(device.commandRegister);

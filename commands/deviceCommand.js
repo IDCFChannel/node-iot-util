@@ -87,6 +87,49 @@ function commandOwner(options) {
     });
 }
 
+function commandShow(options) {    
+    device.getDevice(options.keyword,function(err, res){
+        if (err) console.log(err);
+        else console.log(res);
+        redis.quit();
+    });
+}
+
+/*
+function commandList(options) {
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR);
+    
+    var prefix = options.prefix;
+    
+    async.series([
+        function(callback) {
+            if(error)
+                }
+    ],function(err)) {
+        if (err) { console.log("error"); }
+    }
+    
+    if (!validatePrefix(prefix)) return;
+    
+    var keyword = prefix;
+    
+    var httpOptions = utils.requestOptions(__filename,
+                                           {keyword:keyword,
+                                            token:token});
+    
+    request.get(httpOptions,function(error, response, body) {
+        if (!error && response.statusCode == 201){
+            var body = JSON.parse(body);
+            console.log(body);
+            
+        } else if (error) {
+            console.log('Error: ' + error);
+        }
+    });
+}
+*/
+
 function commandCreate(options) {
 /*
     async.waterfall([
@@ -192,43 +235,10 @@ function commandDelete(options) {
 */
 }
 
-/*
-function commandList(options) {
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
-                                process.env.REDIS_PORT_6379_TCP_ADDR);
-    
-    var prefix = options.prefix;
-    
-    async.series([
-        function(callback) {
-            if(error)
-                }
-    ],function(err)) {
-        if (err) { console.log("error"); }
-    }
-    
-    if (!validatePrefix(prefix)) return;
-    
-    var keyword = prefix;
-    
-    var httpOptions = utils.requestOptions(__filename,
-                                           {keyword:keyword,
-                                            token:token});
-    
-    request.get(httpOptions,function(error, response, body) {
-        if (!error && response.statusCode == 201){
-            var body = JSON.parse(body);
-            console.log(body);
-            
-        } else if (error) {
-            console.log('Error: ' + error);
-        }
-    });
-}
-*/
-
 module.exports = {
     commandOwner: commandOwner,
+    commandShow: commandShow,
+    commandList: commandList,
     commandRegister: commandRegister,
     commandCreate: commandCreate,
     commandWhiten: commandWhiten
