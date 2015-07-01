@@ -95,8 +95,8 @@ function commandShow(options) {
     });
 }
 
-/*
 function commandList(options) {
+/*
     client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                 process.env.REDIS_PORT_6379_TCP_ADDR);
     
@@ -127,8 +127,9 @@ function commandList(options) {
             console.log('Error: ' + error);
         }
     });
-}
 */
+}
+
 
 function commandCreate(options) {
 /*
