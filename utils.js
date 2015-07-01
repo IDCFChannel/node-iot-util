@@ -1,10 +1,10 @@
 var path = require('path'),
     Chance = require('chance'),
     chance = new Chance(),
-    _ = require('lodash');
+    _ = require('lodash'),
+    Table = require('cli-table');
 
 module.exports = {
-
     // constants
     master: 'owner',
     action: 'action',
@@ -26,6 +26,11 @@ module.exports = {
     },
 
     // helpers
+
+    prettyTable: function() {
+        return "a"
+    },
+
     buildOwnerName: function(keyword, token) {
        return  this.owners+':'+keyword+':'+token;
     },

@@ -9,5 +9,9 @@ RUN mkdir -p /dist/node_modules && \
     ln -s /dist/node_modules /app/node_modules && \
     npm install
 COPY . /app
-ENTRYPOINT ["npm", "start"]
+ENTRYPOINT ["npm","start"]
 CMD []
+
+
+
+
