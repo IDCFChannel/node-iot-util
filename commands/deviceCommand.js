@@ -192,7 +192,10 @@ function commandWhiten(options) {
             }
             callback(null);
         },
-        _.partial(device.getDevice, toKeyword),
+        function(callback) {
+            //_.partial(device.getDevice, toKeyword),
+            device.getDevice(toKeyword, callback);
+        },
         device.httpGetDevice,
         _.partial(whitenDevice, fromKeyword, toKeyword)
     ], function(err, results) {
