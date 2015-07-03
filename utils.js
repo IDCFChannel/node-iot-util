@@ -26,9 +26,15 @@ module.exports = {
     },
 
     // helpers
+    prettyTable: function(body, options) {
+        //if(! _.isPlainObject(body)) return body;
 
-    prettyTable: function() {
-        return "a"
+        var table = new Table(options);
+        _.forEach(body, function(n) {
+            table.push(n);
+        });
+        var retval = table.toString(); 
+        return retval;
     },
 
     buildOwnerName: function(keyword, token) {

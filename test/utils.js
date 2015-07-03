@@ -1,10 +1,49 @@
-var expect = require("chai").expect,
-    utils = require("../utils");
 
-describe("pretty table", function() {
-  describe("table a", function() {
-      it("table a", function() {
-          expect(utils.prettyTable()).to.equal("a");
+var should = require('chai').should(),
+    utils = require('../utils');
+
+describe('utils test', function() {
+  describe('pretty table', function() {
+      it('test vertical tables', function() {
+          var style = {
+              head: [],
+              border: []
+          };
+
+          var body = [
+              {'token': 'dc098cc7'},
+              {'uuid': '887688ad-bebd-4f5b-a559-88ecdbb5c1ec'}
+          ];
+
+          var expected = [
+              '┌───────┬──────────────────────────────────────┐'
+            , '│ token │ dc098cc7                             │'
+            , '├───────┼──────────────────────────────────────┤'
+            , '│ uuid  │ 887688ad-bebd-4f5b-a559-88ecdbb5c1ec │'
+            , '└───────┴──────────────────────────────────────┘'
+          ];
+
+          utils.prettyTable(body, {style:style}).should.equal(expected.join('\n'));
+      });
+
+      it('test single column', function() {
+          var head = ['token', 'uuid'];
+          var style = {
+              head: [],
+              border: []
+          };
+          var body = [
+              ['dc098cc7', '887688ad-bebd-4f5b-a559-88ecdbb5c1ec']
+          ];
+
+          var expected = [
+                '┌──────────┬──────────────────────────────────────┐'
+              , '│ token    │ uuid                                 │'
+              , '├──────────┼──────────────────────────────────────┤'
+              , '│ dc098cc7 │ 887688ad-bebd-4f5b-a559-88ecdbb5c1ec │'
+              , '└──────────┴──────────────────────────────────────┘'
+          ];
+          utils.prettyTable(body, {style: style, head: head}).should.equal(expected.join('\n'));
       });
   });
 });

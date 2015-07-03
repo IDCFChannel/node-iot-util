@@ -81,17 +81,21 @@ function createOwner(callback) {
 
 function commandOwner(options) {
     device.getOwnerHeader(function(err, res){
-        if (err) console.log(err);
-        else console.log(res);
         redis.quit();
+        if (err) return console.log(err);
+        console.log(res);
     });
 }
 
 function commandShow(options) {    
     device.getDevice(options.keyword,function(err, res){
-        if (err) console.log(err);
-        else console.log(res);
         redis.quit();
+        if (err) return console.log(err);
+        var head = ['token', 'uuid'];
+        var body = _.map(head, function(n) {return res[n]});
+
+        console.log(utils.prettyTable([[options.keyword].concat(body)],
+                                      {head:['keyword'].concat(head)}));
     });
 }
 
