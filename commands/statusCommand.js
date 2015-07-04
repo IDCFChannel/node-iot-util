@@ -1,13 +1,13 @@
 'use strict';
 
 var request = require('request'),
-    redis = require('../initializers/redis'),
+//    redis = require('../initializers/redis'),
     utils = require('../utils');
 
 function _commandStatus(callback) {
     var options = utils.requestOptions('status');
     request.get(options, function(error, response, body) {
-        redis.quit();        
+//        redis.quit();        
         if (!error && response.statusCode == 200){
             var body = JSON.parse(body);
             var head = ['meshblu']

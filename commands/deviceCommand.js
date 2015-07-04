@@ -87,7 +87,19 @@ function prettyDevice(keyword, res, callback){
     callback(null, retval);
 }
 
-function _commandOwner(options, callback) {
+function prettyDevices(res, callback){
+    if(_.isEmpty(res)) return callback(new Error('devices not found'));
+
+    var head = _.keys(res[0]).sort();
+    var body = _.map(res, function(r) {
+        return _.map(head, function(n) {return r[n]});
+    });
+
+    var retval = utils.prettyTable(body, {head: head});
+    callback(null, retval);
+}
+
+function _owner(options, callback) {
     device.getOwnerHeader(function(err, res){
         redis.quit();
         if (err) return callback(err);
@@ -95,7 +107,7 @@ function _commandOwner(options, callback) {
     });
 }
 
-function _commandShow(options, callback) {
+function _show(options, callback) {
     device.getDevice(options.keyword, function(err, res){
         redis.quit();
         if (err) return callback(err);
@@ -103,11 +115,17 @@ function _commandShow(options, callback) {
     });
 }
 
-function _commandList(options) {
+function _list(options, callback) {
+    redis.quit();
+    var res = [
+        {name: 1, value: 1},
+        {name: 2, value: 2}
+    ];
+    prettyDevices(res, callback);
 }
 
 
-function commandCreate(options) {
+function _create(options) {
 /*
     async.waterfall([
         ownerCheck,
@@ -121,7 +139,7 @@ function commandCreate(options) {
 */
 }
 
-function commandRegister(options) {
+function _register(options) {
     async.waterfall([
         ownerCheck,
         createOwner,
@@ -157,7 +175,7 @@ function whitenDevice(fromKeyword, toKeyword, authHeader, body, callback) {
     });
 };
 
-function commandWhiten(options) {
+function _whiten(options) {
     var fromKeyword = options.from;
     var toKeyword = options.to;
     async.waterfall([
@@ -181,7 +199,7 @@ function commandWhiten(options) {
     });
 }
 
-function commandDelete(options) {
+function _delete(options) {
     var prefix = options.prefix;
     if (!validatePrefix(prefix)) return;
     var keyword = prefix + '-*';
@@ -221,16 +239,16 @@ function outCallback(err, res) {
 }
 
 module.exports = {
-    commandOwner: function commandOwner(options) {
-        _commandOwner(options, outCallback);
+    owner: function(options) {
+        _owner(options, outCallback);
     },
-    commandShow: function commandShow(options) {
-        _commandShow(options, outCallback);
+    show: function(options) {
+        _show(options, outCallback);
     },
-    commandList: function commandList(option) { 
-       _commandList(options, outCallback);
+    list: function(options) { 
+       _list(options, outCallback);
     },
-    commandRegister: commandRegister,
-    commandCreate: commandCreate,
-    commandWhiten: commandWhiten
+    register: _register,
+    create: _create,
+    whiten: _whiten
 }
