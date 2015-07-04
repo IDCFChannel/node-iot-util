@@ -87,15 +87,15 @@ function commandOwner(options) {
     });
 }
 
-function commandShow(options) {    
+function _commandShow(options, callback) {
     device.getDevice(options.keyword,function(err, res){
         redis.quit();
-        if (err) return console.log(err);
+        if (err) return callback(err);
         var head = ['token', 'uuid'];
         var body = _.map(head, function(n) {return res[n]});
-
-        console.log(utils.prettyTable([[options.keyword].concat(body)],
-                                      {head: ['keyword'].concat(head)}));
+        var retval = utils.prettyTable([[options.keyword].concat(body)],
+                                       {head: ['keyword'].concat(head)});
+        callback(null, retval);
     });
 }
 
@@ -245,7 +245,12 @@ function commandDelete(options) {
 
 module.exports = {
     commandOwner: commandOwner,
-    commandShow: commandShow,
+    commandShow: function commandShow(options) {
+        _commandShow(options, function(err, res){
+            if(err) console.log(err);
+            else console.log(res);
+        });
+    },
     commandList: commandList,
     commandRegister: commandRegister,
     commandCreate: commandCreate,

@@ -2,7 +2,7 @@ var request = require('request'),
     redis = require('../initializers/redis'),
     utils = require('../utils');
 
-function getStatus(callback) {
+function _commandStatus(callback) {
     var options = utils.requestOptions('status');
     request.get(options, function(error, response, body) {
         redis.quit();        
@@ -19,9 +19,9 @@ function getStatus(callback) {
 }
 
 module.exports = {
-    _getStatus: getStatus,
+    _commandStatus: _commandStatus,
     commandStatus: function() {        
-        getStatus(function(err, res){
+        _commandStatus(function(err, res){
             if(err) console.log(err);
             else console.log(res);
         });
