@@ -48,7 +48,7 @@ module.exports = {
             return device;
         } else {
             return device.split(':')[1];
-        }        
+        }
     },
 
     buildNamespace: function(keyword) {
@@ -62,7 +62,7 @@ module.exports = {
     },
 
     buildDeviceName: function(keyword, ownerToken) {
-        var namespace = buildNamespace(keyword);
+        var namespace = this.buildNamespace(keyword);
         return namespace+':'+keyword+':'+ownerToken;
     },
 

@@ -44,24 +44,15 @@ program
     .action(deviceCommand.whiten);
 
 program
-    .command('create')
-    .description('create device')
-    .option('-p, --prefix [prefix]','action or trigger')
-    .option('-t, --times <n>','create times',parseInt)
-    .action(deviceCommand.create);
-
-program
-    .command('delete')
-    .description('delete all devices')
-    .option('-p, --prefix [prefix]','action or trigger')
-    .action(deviceCommand.remove);
+    .command('del')
+    .description('del all devices')
+    .action(deviceCommand.del);
 
 program
     .command('list')
     .description('list devices')
     .option('-p, --prefix [prefix]','action or trigger or mythings')
     .action(deviceCommand.list);
-
 
 program.parse(process.argv);
 

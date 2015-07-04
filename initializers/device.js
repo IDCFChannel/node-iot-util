@@ -12,9 +12,6 @@ module.exports = function(client) {
             client.quit();
         },
 
-        deleteDevices: function(owner, prefix, times, callback) {
-        },
-
         getEntryKey: function(body, opts, callback) {
             var self = this;
             if(utils.isOwner(opts.keyword)) {
@@ -28,11 +25,51 @@ module.exports = function(client) {
             }
         },
 
+        doDelDevices: function(namespace, authHeader, callback) {
+            var self = this;
+            async.waterfall([
+                function(next) {
+                    self.getNameDevices(utils.triggers, next);
+                },
+                function(devices, next) {
+                    async.each(devices, function(d, delNext) {
+                        var httpOptions = utils.requestOptions(
+                            'devices/'+d.uuid, authHeader);
+                        console.log(authHeader);
+                        request.del(httpOptions, function(err, response, body) {
+                            console.log(response.statusCode);
+                            console.log(body);
+                            delNext(null);
+                            /*
+                            if(err || response.statusCode != 201){
+                                return callback(new Error('status: '+ response.statusCode));
+                            } else {
+                                var body = JSON.parse(body);
+                                console.log(body);
+                            }
+                            */
+                        });
+                    });
+                    next(null);
+                }
+            ], function(err, results) {
+
+                callback(err, results);
+            });
+    /*
+        res.forEach(function (reply, i) {
+            client.del(reply, function(err, o) {
+                if(err) throw err;
+            });
+        });
+    */
+        },
+
         // call meshblu api and store hashed token in redis
         doPostDevice: function(opts, callback) {
             var self = this;
             var httpOptions = utils.requestOptions('devices', null, opts);
-            request.post(httpOptions, function(err, response, body) {        
+            request.post(httpOptions, function(err, response, body) {
                 if(err || response.statusCode != 201){
                     return callback(new Error('status: '+ response.statusCode));
                 } else {
@@ -115,7 +152,7 @@ module.exports = function(client) {
             });
         },
 
-        httpGetDevice: function(toDevice, callback) {
+        doGetDevice: function(toDevice, callback) {
             var authHeader = utils.buildHeader(toDevice);
             var httpOptions = utils.requestOptions(
                 'devices/'+authHeader.meshblu_auth_uuid,
@@ -129,7 +166,7 @@ module.exports = function(client) {
             });
         },
       
-        putWhiteDevice: function(owner, authHeader, form, callback) {
+        doPutWhiteDevice: function(owner, authHeader, form, callback) {
             if(!owner) return callback(null, authHeader);
             var httpOptions = utils.requestOptions('devices/'+authHeader.meshblu_auth_uuid,
                                                    authHeader,

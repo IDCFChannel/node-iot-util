@@ -52,24 +52,39 @@ function ownerCheck(device, callback) {
     });
 }
 
+function ownerHeader(device, callback) {
+    device.getOwnerHeader(callback);
+}
 
-function createDevice(device, times, prefix, owner, callback) {
+function delDevice(device, namespace, authHeader, callback) {
+    device.doDelDevices(namespace, authHeader, function(err, res) {
+        callback(null, authHeader);
+    });
+}
+
+function delOwner(device, authHeader, callback) {
+    callback(null, authHeader);
+}
+
+function createDevice(device, times, namespace, owner, callback) {
     async.timesSeries(times, function(n, callback) {
-        var opts = utils.buildBaseOptions(owner, prefix, n);
+        var opts = utils.buildBaseOptions(owner, namespace, n);
         async.waterfall([
             function(callback) {
                 device.doPostDevice(opts, callback);
             },
             device.doPutClaimDevice,
             _.partial(getWhiteDevice, device, owner),
-            device.putWhiteDevice
+            device.doPutWhiteDevice
         ], function(err, results) {
-            if (err) return callback(err);
-            callback(null, results);
+            callback(err, results);
+//            if (err) return callback(err);
+//            callback(null, results);
         });
     }, function(err, results) {
-        if (err) return callback(err);
-        callback(null, results);
+        callback(err, results);
+//        if (err) return callback(err);
+//        callback(null, results);
     });
 }
 
@@ -121,20 +136,6 @@ function _list(device, options, callback) {
     });
 }
 
-function _create(options) {
-/*
-    async.waterfall([
-        ownerCheck,
-        createOwner,
-        _.partial(createDevice, defaultTimes, 'trigger'),
-    ], function(err, results) {
-        device.endConnection();
-        if(err) return console.log(err.message);
-        console.log("devices registered successfully");
-    });
-*/
-}
-
 function _register(device, options, callback) {
     async.waterfall([
         _.partial(ownerCheck, device),
@@ -154,6 +155,18 @@ function _register(device, options, callback) {
     });
 }
 
+function _del(device, callback) {
+    async.waterfall([
+        _.partial(ownerHeader, device),
+        _.partial(delDevice, device, utils.action),
+        _.partial(delDevice, device, utils.trigger),
+        _.partial(delOwner, device)
+    ], function(err, results) {
+        device.quit();
+        callback(err, results);
+    });
+}
+
 function whitenDevice(device, fromKeyword, toKeyword, authHeader, body, callback) {
     if(! body) {
         return callback(new Error(toKeyword + ' is not found'));
@@ -167,7 +180,7 @@ function whitenDevice(device, fromKeyword, toKeyword, authHeader, body, callback
             return callback(new Error(msg));
         }
         var form = utils.buildWhiteToForm(toDevice, fromUuid);
-        device.putWhiteDevice(true, authHeader, form, callback);
+        device.doPutWhiteDevice(true, authHeader, form, callback);
     });
 };
 
@@ -185,28 +198,13 @@ function _whiten(device, options, callback) {
         function(callback) {
             device.getDevice(toKeyword, callback);
         },
-        device.httpGetDevice,
+        device.doGetDevice,
         _.partial(whitenDevice, device, fromKeyword, toKeyword)
     ], function(err, results) {
         device.quit();
         var msg = fromKeyword + ' can send message to ' + toKeyword;
         callback(err, msg);
     });
-}
-
-function _delete(device, options) {
-    var prefix = options.prefix;
-    if (!validatePrefix(prefix)) return;
-    var keyword = prefix + '-*';
-
-    device.deleteDevices(keyword,function(err,res){
-        res.forEach(function (reply, i) {
-            client.del(reply, function(err, o) {
-                if(err) throw err;
-            });
-        });
-    });
-    device.quit();
 }
 
 function outCallback(err, res) {
@@ -232,8 +230,8 @@ module.exports = function(device) {
         list: function(options) {
             _list(device, options, outCallback);
         },
-        create: function(options) {
-            _create(options);
+        del: function(options) {
+            _del(device, outCallback);
         }
     }
 }

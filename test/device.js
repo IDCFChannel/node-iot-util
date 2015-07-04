@@ -21,9 +21,16 @@ describe('device initializer', function() {
         done();
     });
 
+    it('should get owner header', function(done) {
+        device.getOwnerHeader(function(err, res) {
+            should.exist(res);
+            done();
+        });
+    });
+
     it('call redis keys', function(done) {
         var keyword = '';
-        device.getDevices(keyword, function(err, res){
+        device.getDevices(keyword, function(err, res) {
             should.exist(res);
             done();
         });
