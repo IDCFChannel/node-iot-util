@@ -1,10 +1,9 @@
-
 var should = require('chai').should(),
     utils = require('../utils');
 
-describe('utils test', function() {
+describe('utils', function() {
   describe('pretty table', function() {
-      it('test vertical tables', function() {
+      it('should create vertical tables', function() {
           var style = {
               head: [],
               border: []
@@ -26,7 +25,7 @@ describe('utils test', function() {
           utils.prettyTable(body, {style:style}).should.equal(expected.join('\n'));
       });
 
-      it('test single column', function() {
+      it('should create single column', function() {
           var head = ['token', 'uuid'];
           var style = {
               head: [],

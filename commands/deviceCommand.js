@@ -95,7 +95,7 @@ function commandShow(options) {
         var body = _.map(head, function(n) {return res[n]});
 
         console.log(utils.prettyTable([[options.keyword].concat(body)],
-                                      {head:['keyword'].concat(head)}));
+                                      {head: ['keyword'].concat(head)}));
     });
 }
 
