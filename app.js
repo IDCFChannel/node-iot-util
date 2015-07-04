@@ -2,14 +2,21 @@
 'use strict';
 
 var program = require('commander'),
-    statusCommand  = require('./commands/statusCommand'),
     redis = require('redis'),
     client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
                                 process.env.REDIS_PORT_6379_TCP_ADDR, {
                                     "connection_timeout": 1.0
                                 }),
     device = require('./initializers/device')(client),
-    deviceCommand = require('./commands/deviceCommand')(device);
+    deviceCommand = require('./commands/deviceCommand')(device),
+    statusCommand = require('./commands/statusCommand');
+
+
+function end(err, res) {
+    device.quit();
+    if(err) console.log(err.message);
+    else if (res) console.log(res);
+}
 
 program
     .version('0.0.1')
@@ -18,41 +25,55 @@ program
 program
     .command('status')
     .description('show status')
-    .action(statusCommand.status);
+    .action(function() {
+        statusCommand.status(end);
+    });
 
 program
     .command('owner')
     .description('show owner keyword and token')
-    .action(deviceCommand.owner);
+    .action(function() {
+        deviceCommand.owner(end);
+    });
 
 program
     .command('show')
     .description('show device keyword and token')
     .option('-k, --keyword [keyword]','device keyword')
-    .action(deviceCommand.show);
+    .action(function(options) {
+        deviceCommand.show(options, end);
+    });
 
 program
     .command('register')
     .description('register device')
-    .action(deviceCommand.register);
+    .action(function(options) {
+        deviceCommand.register(options, end);
+    });
 
 program
     .command('whiten')
     .description('device whiten')
     .option('-f, --from [from device]','add whitelist from')
     .option('-t, --to [to device]','add whitelist to')
-    .action(deviceCommand.whiten);
+    .action(function(options) {
+        deviceCommand.whiten(options, end);
+    });
 
 program
     .command('del')
     .description('del all devices')
-    .action(deviceCommand.del);
+    .action(function() {
+        deviceCommand.del(end);
+    });
 
 program
     .command('list')
     .description('list devices')
     .option('-p, --prefix [prefix]','action or trigger or mythings')
-    .action(deviceCommand.list);
+    .action(function(options) {
+        deviceCommand.list(options, end);
+    });
 
 program.parse(process.argv);
 

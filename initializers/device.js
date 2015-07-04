@@ -25,44 +25,23 @@ module.exports = function(client) {
             }
         },
 
-        doDelDevices: function(namespace, authHeader, callback) {
+        doDelDevices: function(devices, ownerToken, callback) {
             var self = this;
-            async.waterfall([
-                function(next) {
-                    self.getNameDevices(utils.triggers, next);
-                },
-                function(devices, next) {
-                    async.each(devices, function(d, delNext) {
-                        var httpOptions = utils.requestOptions(
-                            'devices/'+d.uuid, authHeader);
-                        console.log(authHeader);
-                        request.del(httpOptions, function(err, response, body) {
-                            console.log(response.statusCode);
-                            console.log(body);
-                            delNext(null);
-                            /*
-                            if(err || response.statusCode != 201){
-                                return callback(new Error('status: '+ response.statusCode));
-                            } else {
-                                var body = JSON.parse(body);
-                                console.log(body);
-                            }
-                            */
-                        });
-                    });
-                    next(null);
-                }
-            ], function(err, results) {
-
-                callback(err, results);
+            async.each(devices, function(d, delNext) {
+                var httpOptions = utils.requestOptions(
+                    'devices/'+d.uuid, utils.buildHeader(d));
+                request.del(httpOptions, function(err, response, body) {
+                    if(err || response.statusCode != 200){
+                        delNext(new Error('status: '+ response.statusCode));
+                    } else {
+                        var key = utils.buildDeviceName(d.keyword, ownerToken);
+                        client.del(key, delNext);
+                    }
+                });
+            },
+            function(err) {
+                callback(err, devices);
             });
-    /*
-        res.forEach(function (reply, i) {
-            client.del(reply, function(err, o) {
-                if(err) throw err;
-            });
-        });
-    */
         },
 
         // call meshblu api and store hashed token in redis
@@ -182,28 +161,22 @@ module.exports = function(client) {
             });
         },
 
-        getOwnerHeader: function(callback) {
-            var self = this;
-            async.waterfall([
-                function(callback){
-                    self.ownerExists(function(err, res) {
-                        if (err) return callback(err);
-                        if (res.length == 0) {
-                            return callback(new Error('owner not found'), res);
-                        } else {
-                            callback(null, res[0]);
-                        }
-                    });
-                },
-                function(ownerKey, callback) {
-                    client.hgetall(ownerKey, function (err, res) {
-                        if(err) return callback(err);                        
-                        var ownerHeader = utils.buildHeader(res);
-                        callback(err, ownerHeader);
-                    });
+        getOwnerDevice: function(callback) {
+            this.ownerExists(function(err, res) {
+                if (err) return callback(err);
+                if (res.length == 0) {
+                    return callback(new Error('owner not found'), res);
+                } else {
+                    client.hgetall(res[0], callback);
                 }
-            ], function(err, results) {
-                callback(err, results);
+            });
+        },
+
+        getOwnerHeader: function(callback) {
+            this.getOwnerDevice(function(err, res) {
+                if(err) return callback(err);
+                var ownerHeader = utils.buildHeader(res);
+                callback(null, ownerHeader);
             });
         },
 

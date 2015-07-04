@@ -6,13 +6,18 @@ var request    = require('request'),
     fakeredis = require('fakeredis'),
     redis = require('redis');
 
-var device;
+var device, client;
 
 describe('device initializer', function() {
     before(function(done){
         sinon.stub(redis, 'createClient', fakeredis.createClient);
-        var client = redis.createClient();
+        client = redis.createClient();
         device = require('../initializers/device')(client);
+
+        var ownerKey = 'owners:owner:12345678';
+        client.hset(ownerKey, 'token', '12345678');
+        client.hset(ownerKey, 'uuid', '12345678');
+
         done();
     });
 
@@ -22,8 +27,9 @@ describe('device initializer', function() {
     });
 
     it('should get owner header', function(done) {
+
         device.getOwnerHeader(function(err, res) {
-            should.exist(res);
+            should.not.exist(err);
             done();
         });
     });

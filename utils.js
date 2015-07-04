@@ -54,8 +54,10 @@ module.exports = {
     buildNamespace: function(keyword) {
         if(this.isTrigger(keyword)){
             return this.triggers;
-        } else if (this.isAction(keyword)){
+        } else if (this.isAction(keyword)) {
             return this.actions;
+        } else if (this.isOwner(keyword)) {
+            return this.owners;
         } else {
             return null;
         }

@@ -10,7 +10,7 @@ function _status(callback) {
             var body = JSON.parse(body);
             var head = ['meshblu']
             var retval = utils.prettyTable([[body.meshblu]],
-                                         {head: head});
+                                           {head: head});
             callback(null, retval);
         } else if (error) {
             callback(new Error(error));
@@ -20,10 +20,7 @@ function _status(callback) {
 
 module.exports = {
     _status: _status,
-    status: function() {        
-        _status(function(err, res){
-            if(err) console.log(err);
-            else console.log(res);
-        });
+    status: function(callback) {
+        _status(callback);
     }
 }
