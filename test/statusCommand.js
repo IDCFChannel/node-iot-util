@@ -1,13 +1,15 @@
+'use strict';
+
 var request    = require('request'),
     sinon      = require('sinon'),
-    should = require('chai').should,
+    should = require('chai').should(),
     status = require('../commands/statusCommand');
 
 describe('status command', function() {
     before(function(done){
         sinon.stub(request, 'get')
             .yields(null, {statusCode: 200}, JSON.stringify({meshblu:'online'}));
-        done()
+        done();
     });
 
     after(function(done){

@@ -6,10 +6,10 @@ var request = require('request'),
     _ = require('lodash'),
     master = utils.master;
 
-module.exports = function(redis) {
+module.exports = function(client) {
     return {
         quit: function() {
-            redis.quit();
+            client.quit();
         },
 
         deleteDevices: function(owner, prefix, times, callback) {
@@ -39,8 +39,8 @@ module.exports = function(redis) {
                     var body = JSON.parse(body);
                     if (!body) return callback(new Error('no response frm post device'));
                     self.getEntryKey(body, opts, function(err,res) {
-                        redis.hset(res, 'token', body.token);
-                        redis.hset(res, 'uuid', body.uuid);
+                        client.hset(res, 'token', body.token);
+                        client.hset(res, 'uuid', body.uuid);
                         var authHeader = utils.buildHeader(body);
                         callback(null, body.keyword, authHeader);
                     });
@@ -62,13 +62,52 @@ module.exports = function(redis) {
             });
         },
 
+        getNameDevices: function(namespace, callback) {
+            client.keys(namespace+'*', function(err, keys) {
+                if(err) return callback(err);
+                var results = [];
+                async.each(keys.sort(), function(key, next) {
+                    client.hgetall(key, function (err, res) {
+                        results.push(_.merge(res,
+                                             {keyword: utils.destructKeyword(key)}));
+                        next(null);
+                    });              
+                },
+                function(err) {
+                    callback(err, results);                    
+                });
+            });
+        },
+
+        getDevices: function(prefix, callback) {
+            if(prefix && ! utils.checkDevices(prefix))
+                return callback(new Error('invalid prefix: '+prefix));
+            var self = this;
+            async.series([
+                function(next) {
+                    if(_.isEmpty(prefix) || utils.isTrigger(prefix))
+                        self.getNameDevices(utils.triggers, next);
+                    else
+                        next(null);
+                },
+                function(next) {
+                    if(_.isEmpty(prefix) || utils.isAction(prefix))
+                        self.getNameDevices(utils.actions, next);
+                    else
+                        next(null);
+                }
+            ], function(err, results) {
+                callback(err, _.flatten(_.compact(results)));
+            });
+        },
+
         getDevice: function(keyword, callback) {
             if (!keyword) return callback(new Error('keyword is required'));
             var self = this;
             self.getOwnerHeader(function(err, res) {
                 if(err) return callback(err);
                 var key = utils.buildDeviceName(keyword, res.meshblu_auth_token);
-                redis.hgetall(key, function (err, res) {
+                client.hgetall(key, function (err, res) {
                     if (err) return callback(err);
                     if (!res) return callback(new Error('device not found from name; ', keyword));
                     callback(null, res);
@@ -120,7 +159,7 @@ module.exports = function(redis) {
                     });
                 },
                 function(ownerKey, callback) {
-                    redis.hgetall(ownerKey, function (err, res) {
+                    client.hgetall(ownerKey, function (err, res) {
                         if(err) return callback(err);                        
                         var ownerHeader = utils.buildHeader(res);
                         callback(err, ownerHeader);
@@ -133,7 +172,7 @@ module.exports = function(redis) {
 
         ownerExists: function(callback) {
             var ownerName = utils.buildOwnerName(utils.master, '*');
-            redis.keys(ownerName, callback);
+            client.keys(ownerName, callback);
         }
     }
 }

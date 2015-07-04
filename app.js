@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-var program = require('commander')
-  , redis = require('./initializers/redis')
-  , statusCommand  = require('./commands/statusCommand')
-  , deviceCommand = require('./commands/deviceCommand')(redis);
+var program = require('commander'),
+    statusCommand  = require('./commands/statusCommand'),
+    redis = require('redis'),
+    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
+                                process.env.REDIS_PORT_6379_TCP_ADDR, {
+                                    "connection_timeout": 1.0
+                                }),
+    device = require('./initializers/device')(client),
+    deviceCommand = require('./commands/deviceCommand')(device);
 
 program
     .version('0.0.1')

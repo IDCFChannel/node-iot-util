@@ -16,7 +16,8 @@
     "devDependencies": {
         "mocha": "^2.2.5",
         "chai": "^3.0.0",
-        "sinon": "^1.15.4"
+        "sinon": "^1.15.4",
+        "fakeredis": "^0.3.1"
     },
     "scripts": {
         "start": "node app.js",

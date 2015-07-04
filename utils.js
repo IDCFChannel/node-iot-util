@@ -21,6 +21,10 @@ module.exports = {
         return this.isDevice(keyword, this.trigger);
     },
 
+    isAction: function(keyword) {
+        return this.isDevice(keyword, this.action);
+    },
+
     isOwner: function(keyword) {
         return this.isDevice(keyword, this.master);
     },
@@ -28,7 +32,7 @@ module.exports = {
     // helpers
     prettyTable: function(body, options) {
         var table = new Table(options);
-        _.forEach(body, function(n) {
+        body.forEach(function(n) {
             table.push(n);
         });
         var retval = table.toString(); 
@@ -39,14 +43,30 @@ module.exports = {
        return  this.owners+':'+keyword+':'+token;
     },
     
+    destructKeyword: function(device) {
+        if(_.isEmpty(device) || device.indexOf(':') < 0) {
+            return device;
+        } else {
+            return device.split(':')[1];
+        }        
+    },
+
+    buildNamespace: function(keyword) {
+        if(this.isTrigger(keyword)){
+            return this.triggers;
+        } else if (this.isAction(keyword)){
+            return this.actions;
+        } else {
+            return null;
+        }
+    },
+
     buildDeviceName: function(keyword, ownerToken) {
-        var namespace = (this.isTrigger(keyword) 
-                      ? this.triggers : this.actions);
+        var namespace = buildNamespace(keyword);
         return namespace+':'+keyword+':'+ownerToken;
     },
 
     buildActionName: function(keyword, ownerToken) {
-        //return this.action+'-'+keyword.split('-')[1]+':'+ownerToken;
         return this.action+'-'+keyword.split('-')[1];
     },
 

@@ -81,7 +81,7 @@ function prettyDevice(keyword, res, callback){
     var head = _.keys(res).sort();
     var body = _.map(head, function(n) {return res[n]});
     var retval = utils.prettyTable([[keyword].concat(body)],
-                               {head: ['keyword'].concat(head)});
+                                   {head: ['keyword'].concat(head)});
     callback(null, retval);
 }
 
@@ -114,14 +114,12 @@ function _show(device, options, callback) {
 }
 
 function _list(device, options, callback) {
-    device.quit();
-    var res = [
-        {name: 1, value: 1},
-        {name: 2, value: 2}
-    ];
-    prettyDevices(res, callback);
+    device.getDevices(options.prefix, function(err, res) {
+        device.quit();
+        if (err) return callback(err);
+        prettyDevices(res, callback)
+    });
 }
-
 
 function _create(options) {
 /*
@@ -209,25 +207,6 @@ function _delete(device, options) {
         });
     });
     device.quit();
-/*
-    var httpOptions = utils.requestOptions(__filename,
-                                           {keyword:keyword,
-                                            token:token});
-    request.delete(httpOptions,function(error, response, body) {
-        if (!error && response.statusCode == 201){
-            var redis = require('redis'),
-            client = redis.createClient(process.env.REDIS_PORT,
-                                        process.env.REDIS_HOST);
-            var body = JSON.parse(body),
-            
-            key = body.keyword + ':' + body.token;
-            
-            client.quit();
-        } else if (error) {
-            console.log('Error: ' + error);
-        }
-    });
-*/
 }
 
 function outCallback(err, res) {
@@ -235,9 +214,9 @@ function outCallback(err, res) {
     else console.log(res);
 }
 
-module.exports = function(redis) {
-    var device = require('../initializers/device')(redis);
+module.exports = function(device) {
     return {
+        _list: _list,
         owner: function() {
             _owner(device, outCallback);
         },
@@ -251,7 +230,7 @@ module.exports = function(redis) {
             _whiten(device, options, outCallback);
         },
         list: function(options) {
-            _list(options, outCallback);
+            _list(device, options, outCallback);
         },
         create: function(options) {
             _create(options);
