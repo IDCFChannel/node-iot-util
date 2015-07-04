@@ -16,7 +16,7 @@ describe('status command', function() {
     });
 
     it('should show meshblu status', function(done) {
-        status._commandStatus(function(err, res){
+        status._status(function(err, res){
             request.get.called.should.equal(true);
             var off = '\u001b[39m'
               , red = '\u001b[31m'

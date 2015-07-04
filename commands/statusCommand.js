@@ -1,13 +1,11 @@
 'use strict';
 
 var request = require('request'),
-//    redis = require('../initializers/redis'),
     utils = require('../utils');
 
-function _commandStatus(callback) {
+function _status(callback) {
     var options = utils.requestOptions('status');
     request.get(options, function(error, response, body) {
-//        redis.quit();        
         if (!error && response.statusCode == 200){
             var body = JSON.parse(body);
             var head = ['meshblu']
@@ -21,9 +19,9 @@ function _commandStatus(callback) {
 }
 
 module.exports = {
-    _commandStatus: _commandStatus,
-    commandStatus: function() {        
-        _commandStatus(function(err, res){
+    _status: _status,
+    status: function() {        
+        _status(function(err, res){
             if(err) console.log(err);
             else console.log(res);
         });

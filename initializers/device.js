@@ -6,9 +6,11 @@ var request = require('request'),
     _ = require('lodash'),
     master = utils.master;
 
-module.exports = function(client) {
-
+module.exports = function(redis) {
     return {
+        quit: function() {
+            redis.quit();
+        },
 
         deleteDevices: function(owner, prefix, times, callback) {
         },
@@ -37,8 +39,8 @@ module.exports = function(client) {
                     var body = JSON.parse(body);
                     if (!body) return callback(new Error('no response frm post device'));
                     self.getEntryKey(body, opts, function(err,res) {
-                        client.hset(res, 'token', body.token);
-                        client.hset(res, 'uuid', body.uuid);
+                        redis.hset(res, 'token', body.token);
+                        redis.hset(res, 'uuid', body.uuid);
                         var authHeader = utils.buildHeader(body);
                         callback(null, body.keyword, authHeader);
                     });
@@ -54,7 +56,7 @@ module.exports = function(client) {
                     return callback(new Error('status: '+ response.statusCode));
                 } else {
                     var body = JSON.parse(body);
-                    console.log(body);
+                    //console.log(body);
                     callback(null, keyword, authHeader);
                 }
             });
@@ -66,7 +68,7 @@ module.exports = function(client) {
             self.getOwnerHeader(function(err, res) {
                 if(err) return callback(err);
                 var key = utils.buildDeviceName(keyword, res.meshblu_auth_token);
-                client.hgetall(key, function (err, res) {
+                redis.hgetall(key, function (err, res) {
                     if (err) return callback(err);
                     if (!res) return callback(new Error('device not found from name; ', keyword));
                     callback(null, res);
@@ -98,7 +100,7 @@ module.exports = function(client) {
                     return callback(new Error('status: '+ response.statusCode));
                 } else {
                     var body = JSON.parse(body);
-                    console.log(body);
+                    //console.log(body);
                     callback(null, authHeader);
                 }
             });
@@ -118,7 +120,7 @@ module.exports = function(client) {
                     });
                 },
                 function(ownerKey, callback) {
-                    client.hgetall(ownerKey, function (err, res) {
+                    redis.hgetall(ownerKey, function (err, res) {
                         if(err) return callback(err);                        
                         var ownerHeader = utils.buildHeader(res);
                         callback(err, ownerHeader);
@@ -131,7 +133,7 @@ module.exports = function(client) {
 
         ownerExists: function(callback) {
             var ownerName = utils.buildOwnerName(utils.master, '*');
-            client.keys(ownerName, callback);
+            redis.keys(ownerName, callback);
         }
     }
 }

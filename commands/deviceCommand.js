@@ -2,8 +2,6 @@
 
 var utils = require('../utils'),
     async = require('async'),
-    redis = require('../initializers/redis'),
-    device = require('../initializers/device')(redis),
     _ = require('lodash');
 
 var master = 'owner',
@@ -19,7 +17,7 @@ function validatePrefix(prefix, callback) {
     }
 }
 
-function getWhiteDevice(owner, keyword, authHeader, callback) {
+function getWhiteDevice(device, owner, keyword, authHeader, callback) {
     // owner is null if himself
     if(!owner) return callback(null, owner, authHeader, null);
     device.getOwnerHeader(function(err, res) {
@@ -43,7 +41,7 @@ function getWhiteDevice(owner, keyword, authHeader, callback) {
     });
 }
 
-function ownerCheck(callback) {
+function ownerCheck(device, callback) {
     device.ownerExists(function(err, res) {
         if (err) return callback(err);
         if (res.length > 0) {
@@ -55,7 +53,7 @@ function ownerCheck(callback) {
 }
 
 
-function createDevice(times, prefix, owner, callback) {
+function createDevice(device, times, prefix, owner, callback) {
     async.timesSeries(times, function(n, callback) {
         var opts = utils.buildBaseOptions(owner, prefix, n);
         async.waterfall([
@@ -63,7 +61,7 @@ function createDevice(times, prefix, owner, callback) {
                 device.doPostDevice(opts, callback);
             },
             device.doPutClaimDevice,
-            _.partial(getWhiteDevice, owner),
+            _.partial(getWhiteDevice, device, owner),
             device.putWhiteDevice
         ], function(err, results) {
             if (err) return callback(err);
@@ -75,8 +73,8 @@ function createDevice(times, prefix, owner, callback) {
     });
 }
 
-function createOwner(callback) {
-    createDevice(1, master, null, callback);
+function createOwner(device, callback) {
+    createDevice(device, 1, master, null, callback);
 }
 
 function prettyDevice(keyword, res, callback){
@@ -99,24 +97,24 @@ function prettyDevices(res, callback){
     callback(null, retval);
 }
 
-function _owner(options, callback) {
+function _owner(device, callback) {
     device.getOwnerHeader(function(err, res){
-        redis.quit();
+        device.quit();
         if (err) return callback(err);
         prettyDevice(utils.master, res, callback)
     });
 }
 
-function _show(options, callback) {
+function _show(device, options, callback) {
     device.getDevice(options.keyword, function(err, res){
-        redis.quit();
+        device.quit();
         if (err) return callback(err);
         prettyDevice(options.keyword, res, callback)
     });
 }
 
-function _list(options, callback) {
-    redis.quit();
+function _list(device, options, callback) {
+    device.quit();
     var res = [
         {name: 1, value: 1},
         {name: 2, value: 2}
@@ -139,26 +137,26 @@ function _create(options) {
 */
 }
 
-function _register(options) {
+function _register(device, options, callback) {
     async.waterfall([
-        ownerCheck,
-        createOwner,
-        _.partial(createDevice, defaultTimes, utils.action),
-        _.partial(createDevice, defaultTimes, utils.trigger),
+        _.partial(ownerCheck, device),
+        _.partial(createOwner, device),
+        _.partial(createDevice, device, defaultTimes, utils.action),
+        _.partial(createDevice, device, defaultTimes, utils.trigger),
     ], function(err, results) {
         if(err) {
-            redis.quit();
-            console.log(err.message);
+            device.quit();
+            callback(err);
         } else {
             device.getOwnerHeader(function(err, res) {
-                console.log("devices registered successfully, owner is ", res);
-                redis.quit();
+                device.quit();
+                prettyDevice(utils.master, res, callback)
             });
         }
     });
 }
 
-function whitenDevice(fromKeyword, toKeyword, authHeader, body, callback) {
+function whitenDevice(device, fromKeyword, toKeyword, authHeader, body, callback) {
     if(! body) {
         return callback(new Error(toKeyword + ' is not found'));
     }
@@ -175,7 +173,7 @@ function whitenDevice(fromKeyword, toKeyword, authHeader, body, callback) {
     });
 };
 
-function _whiten(options) {
+function _whiten(device, options, callback) {
     var fromKeyword = options.from;
     var toKeyword = options.to;
     async.waterfall([
@@ -187,19 +185,18 @@ function _whiten(options) {
             callback(null);
         },
         function(callback) {
-            //_.partial(device.getDevice, toKeyword),
             device.getDevice(toKeyword, callback);
         },
         device.httpGetDevice,
-        _.partial(whitenDevice, fromKeyword, toKeyword)
+        _.partial(whitenDevice, device, fromKeyword, toKeyword)
     ], function(err, results) {
-        redis.quit();
-        if(err) return console.log(err.message);
-        else console.log(results);
+        device.quit();
+        var msg = fromKeyword + ' can send message to ' + toKeyword;
+        callback(err, msg);
     });
 }
 
-function _delete(options) {
+function _delete(device, options) {
     var prefix = options.prefix;
     if (!validatePrefix(prefix)) return;
     var keyword = prefix + '-*';
@@ -211,7 +208,7 @@ function _delete(options) {
             });
         });
     });
-    redis.quit();
+    device.quit();
 /*
     var httpOptions = utils.requestOptions(__filename,
                                            {keyword:keyword,
@@ -234,21 +231,30 @@ function _delete(options) {
 }
 
 function outCallback(err, res) {
-    if(err) console.log(err);
+    if(err) console.log(err.message);
     else console.log(res);
 }
 
-module.exports = {
-    owner: function(options) {
-        _owner(options, outCallback);
-    },
-    show: function(options) {
-        _show(options, outCallback);
-    },
-    list: function(options) { 
-       _list(options, outCallback);
-    },
-    register: _register,
-    create: _create,
-    whiten: _whiten
+module.exports = function(redis) {
+    var device = require('../initializers/device')(redis);
+    return {
+        owner: function() {
+            _owner(device, outCallback);
+        },
+        show: function(options) {
+            _show(device, options, outCallback);
+        },
+        register: function(options) {
+            _register(device, options, outCallback);
+        },
+        whiten: function(options) {
+            _whiten(device, options, outCallback);
+        },
+        list: function(options) {
+            _list(options, outCallback);
+        },
+        create: function(options) {
+            _create(options);
+        }
+    }
 }

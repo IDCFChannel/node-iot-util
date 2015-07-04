@@ -2,8 +2,9 @@
 'use strict';
 
 var program = require('commander')
-  , statusCommand  = require('./commands/statusCommand.js')
-  , deviceCommand = require('./commands/deviceCommand.js');
+  , redis = require('./initializers/redis')
+  , statusCommand  = require('./commands/statusCommand')
+  , deviceCommand = require('./commands/deviceCommand')(redis);
 
 program
     .version('0.0.1')
@@ -56,10 +57,11 @@ program
     .option('-p, --prefix [prefix]','action or trigger or mythings')
     .action(deviceCommand.list);
 
+
 program.parse(process.argv);
 
 if (process.argv.length < 2) {
-    console.log('You must specify a command'.red);
+    console.log('You must specify a command');
     program.help();
 }
 
