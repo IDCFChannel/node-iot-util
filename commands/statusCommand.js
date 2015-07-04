@@ -1,3 +1,5 @@
+'use strict';
+
 var request = require('request'),
     redis = require('../initializers/redis'),
     utils = require('../utils');

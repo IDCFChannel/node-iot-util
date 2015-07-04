@@ -79,59 +79,31 @@ function createOwner(callback) {
     createDevice(1, master, null, callback);
 }
 
-function commandOwner(options) {
+function prettyDevice(keyword, res, callback){
+    var head = _.keys(res).sort();
+    var body = _.map(head, function(n) {return res[n]});
+    var retval = utils.prettyTable([[keyword].concat(body)],
+                               {head: ['keyword'].concat(head)});
+    callback(null, retval);
+}
+
+function _commandOwner(options, callback) {
     device.getOwnerHeader(function(err, res){
         redis.quit();
-        if (err) return console.log(err);
-        console.log(res);
+        if (err) return callback(err);
+        prettyDevice(utils.master, res, callback)
     });
 }
 
 function _commandShow(options, callback) {
-    device.getDevice(options.keyword,function(err, res){
+    device.getDevice(options.keyword, function(err, res){
         redis.quit();
         if (err) return callback(err);
-        var head = ['token', 'uuid'];
-        var body = _.map(head, function(n) {return res[n]});
-        var retval = utils.prettyTable([[options.keyword].concat(body)],
-                                       {head: ['keyword'].concat(head)});
-        callback(null, retval);
+        prettyDevice(options.keyword, res, callback)
     });
 }
 
-function commandList(options) {
-/*
-    client = redis.createClient(process.env.REDIS_PORT_6379_TCP_PORT,
-                                process.env.REDIS_PORT_6379_TCP_ADDR);
-    
-    var prefix = options.prefix;
-    
-    async.series([
-        function(callback) {
-            if(error)
-                }
-    ],function(err)) {
-        if (err) { console.log("error"); }
-    }
-    
-    if (!validatePrefix(prefix)) return;
-    
-    var keyword = prefix;
-    
-    var httpOptions = utils.requestOptions(__filename,
-                                           {keyword:keyword,
-                                            token:token});
-    
-    request.get(httpOptions,function(error, response, body) {
-        if (!error && response.statusCode == 201){
-            var body = JSON.parse(body);
-            console.log(body);
-            
-        } else if (error) {
-            console.log('Error: ' + error);
-        }
-    });
-*/
+function _commandList(options) {
 }
 
 
@@ -243,15 +215,21 @@ function commandDelete(options) {
 */
 }
 
+function outCallback(err, res) {
+    if(err) console.log(err);
+    else console.log(res);
+}
+
 module.exports = {
-    commandOwner: commandOwner,
-    commandShow: function commandShow(options) {
-        _commandShow(options, function(err, res){
-            if(err) console.log(err);
-            else console.log(res);
-        });
+    commandOwner: function commandOwner(options) {
+        _commandOwner(options, outCallback);
     },
-    commandList: commandList,
+    commandShow: function commandShow(options) {
+        _commandShow(options, outCallback);
+    },
+    commandList: function commandList(option) { 
+       _commandList(options, outCallback);
+    },
     commandRegister: commandRegister,
     commandCreate: commandCreate,
     commandWhiten: commandWhiten

@@ -71,8 +71,6 @@ module.exports = function(client) {
                     if (!res) return callback(new Error('device not found from name; ', keyword));
                     callback(null, res);
                 });
- 
-
             });
         },
 

@@ -27,8 +27,6 @@ module.exports = {
 
     // helpers
     prettyTable: function(body, options) {
-        //if(! _.isPlainObject(body)) return body;
-
         var table = new Table(options);
         _.forEach(body, function(n) {
             table.push(n);
