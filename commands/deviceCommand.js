@@ -117,7 +117,8 @@ function prettyDevice(keyword, res, callback){
     var head = _.keys(res).sort();
     var body = _.map(head, function(n) {return res[n]});
     var retval = utils.prettyTable([[keyword].concat(body)],
-                                   {head: ['keyword'].concat(head)});
+                                   {head: ['keyword'].concat(head),
+                                    style: { head: ['cyan']}});
     callback(null, retval);
 }
 
@@ -129,7 +130,8 @@ function prettyDevices(res, callback){
         return _.map(head, function(n) {return r[n]});
     });
 
-    var retval = utils.prettyTable(body, {head: head});
+    var retval = utils.prettyTable(body, {head: head,
+                                    style: { head: ['green']}});
     callback(null, retval);
 }
 
