@@ -27,8 +27,8 @@ function getWhiteDevice(device, owner, keyword, authHeader, callback) {
             receiveWhitelist: [res.meshblu_auth_uuid]
         };
 
-        if (utils.isTrigger(keyword)) {
-            device.getDevice(utils.buildActionName(keyword, res.meshblu_auth_token),
+        if (utils.isAction(keyword)) {
+            device.getDevice(utils.buildTriggerName(keyword, res.meshblu_auth_token),
                              function(err, res) {
                                  if (err) return callback(err);
                                  form.discoverWhitelist.push(res.uuid);
@@ -163,8 +163,8 @@ function _register(device, options, callback) {
     async.waterfall([
         _.partial(ownerCheck, device),
         _.partial(createOwner, device),
-        _.partial(createDevice, device, defaultTimes, utils.action),
         _.partial(createDevice, device, defaultTimes, utils.trigger),
+        _.partial(createDevice, device, defaultTimes, utils.action),
     ], function(err, results) {
         if(err) {
             //device.quit();

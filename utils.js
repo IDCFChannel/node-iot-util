@@ -72,6 +72,10 @@ module.exports = {
         return this.action+'-'+keyword.split('-')[1];
     },
 
+    buildTriggerName: function(keyword, ownerToken) {
+        return this.trigger+'-'+keyword.split('-')[1];
+    },
+
     checkDevices: function(prefix) {
         return _.includes([this.action, this.trigger], prefix);
     },
