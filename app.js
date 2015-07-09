@@ -9,8 +9,8 @@ var program = require('commander'),
                                 }),
     device = require('./initializers/device')(client),
     deviceCommand = require('./commands/deviceCommand')(device),
-    statusCommand = require('./commands/statusCommand');
-
+    statusCommand = require('./commands/statusCommand'),
+    prompt = require('prompt');
 
 function end(err, res) {
     device.quit();
@@ -63,13 +63,27 @@ program
 program
     .command('del')
     .description('del all devices')
-    .action(function() {
-        deviceCommand.del(end);
+    .action(function() {        
+        prompt.start();
+        prompt.message = 'are you sure?';
+        prompt.get([{
+            name: 'ok',
+            type: 'string',
+            pattern: /^[Yn]$/,
+            description: '[Yn]',
+            required: true
+        }], function (err, result) {
+            if(result && result.ok === 'Y') {
+                deviceCommand.del(end);
+            } else {
+                process.exit();
+            }
+        });
     });
 
 program
     .command('list')
-    .description('list devices')
+    .description('list devices')    
     .option('-p, --prefix [prefix]','action or trigger or mythings')
     .action(function(options) {
         deviceCommand.list(options, end);
