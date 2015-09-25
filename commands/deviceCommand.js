@@ -154,7 +154,8 @@ function _dump(device, options, callback) {
                 callback(null, res);
             });
         }], function(err, results) {
-            callback(err, _.flatten(results));
+            var retval = JSON.stringify(_.flatten(results));
+            callback(null, retval);
         });
 }
 
