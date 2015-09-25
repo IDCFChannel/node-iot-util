@@ -75,7 +75,7 @@ function delDevice(device, callback) {
             device.getOwnerHeader(function(err, res) {
                 if(err) return next(err);
                 device.doDelDevices(devices, res.meshblu_auth_token, next);
-            });           
+            });
         }
     ],
     function(err, results) {
@@ -135,9 +135,31 @@ function prettyDevices(res, callback){
     callback(null, retval);
 }
 
+function _dump(device, options, callback) {
+    async.series([
+        function(callback) {
+            device.getOwnerHeader(function(err, res){
+                if (err) return callback(err);
+                var retval = {
+                    token: res.meshblu_auth_token,
+                    uuid: res.meshblu_auth_uuid,
+                    keyword: 'owner'
+                };
+                callback(null, retval);
+            });
+        },
+        function(callback) {
+            device.getDevices(options.prefix, function(err, res) {
+                if (err) return callback(err);
+                callback(null, res);
+            });
+        }], function(err, results) {
+            callback(err, _.flatten(results));
+        });
+}
+
 function _owner(device, callback) {
     device.getOwnerHeader(function(err, res){
-        //device.quit();
         if (err) return callback(err);
         prettyDevice(utils.master, res, callback)
     });
@@ -153,7 +175,6 @@ function _show(device, options, callback) {
 
 function _list(device, options, callback) {
     device.getDevices(options.prefix, function(err, res) {
-        //device.quit();
         if (err) return callback(err);
         prettyDevices(res, callback)
     });
@@ -183,7 +204,6 @@ function _del(device, callback) {
         _.partial(delDevice, device),
         _.partial(delOwner, device)
     ], function(err, results) {
-        //device.quit();
         var keywords = _.pluck(_.flatten(results), 'keyword').join(', ');
         callback(err, keywords+' are deleted.');
     });
@@ -249,6 +269,9 @@ module.exports = function(device) {
         },
         list: function(options, callback) {
             _list(device, options, callback);
+        },
+        dump: function(options, callback) {
+            _dump(device, options, callback);
         }
     }
 }

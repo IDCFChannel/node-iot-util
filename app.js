@@ -63,7 +63,7 @@ program
 program
     .command('del')
     .description('del all devices')
-    .action(function() {        
+    .action(function() {
         prompt.start();
         prompt.message = 'are you sure?';
         prompt.get([{
@@ -83,10 +83,17 @@ program
 
 program
     .command('list')
-    .description('list devices')    
+    .description('list devices')
     .option('-p, --prefix [prefix]','action or trigger or mythings')
     .action(function(options) {
         deviceCommand.list(options, end);
+    });
+
+program
+    .command('dump')
+    .description('dump devices')
+    .action(function(options) {
+        deviceCommand.dump(options, end);
     });
 
 program.parse(process.argv);
